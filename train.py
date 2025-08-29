@@ -19,6 +19,7 @@ import logging
 from rlhf_core.policy import PolicyModel
 from rlhf_core.reward import ToyRewardModel
 from rlhf_core.ppo import PPOTrainer
+from monitor.logger import create_stability_logger
 
 
 def set_seed(seed: int):
@@ -133,6 +134,9 @@ def main():
     # Setup JSONL logging
     jsonl_log_file = os.path.join(log_dir, 'train.jsonl')
     
+    # Setup stability monitoring
+    stability_logger = create_stability_logger(log_dir, tb_dir)
+    
     # Create models
     logger.info("Initializing models...")
     
@@ -185,6 +189,29 @@ def main():
                 total_steps += 1
                 log_metrics(writer, step_metrics, total_steps, jsonl_log_file)
                 
+                # Log stability metrics
+                if 'rewards' in step_metrics and 'advantages' in step_metrics and 'kl_penalty' in step_metrics:
+                    stability_metrics = stability_logger.compute_stability_metrics(
+                        policy_model=policy_model,
+                        reference_model=reference_model,
+                        rewards=step_metrics['rewards'],
+                        advantages=step_metrics['advantages'],
+                        kl_penalty=step_metrics['kl_penalty'],
+                        policy_loss=step_metrics['policy_loss'],
+                        clip_fraction=step_metrics.get('clip_fraction', 0.0),
+                        learning_rate=step_metrics.get('learning_rate', args.learning_rate)
+                    )
+                    
+                    # Get tokens processed for throughput calculation
+                    tokens_processed = step_metrics.get('sequence_length_mean', 0) * step_metrics.get('batch_size', 1)
+                    
+                    stability_logger.log_metrics(
+                        step=total_steps,
+                        metrics=stability_metrics,
+                        tokens_processed=int(tokens_processed),
+                        batch_size=step_metrics.get('batch_size', 1)
+                    )
+                
                 # Save checkpoint periodically
                 if total_steps % args.checkpoint_interval == 0:
                     checkpoint_path = os.path.join(checkpoint_dir, f"checkpoint_step_{total_steps}.pt")
@@ -226,6 +253,9 @@ def main():
     
     # Close TensorBoard writer
     writer.close()
+    
+    # Close stability logger
+    stability_logger.close()
     
     # Create a symlink to the latest run
     latest_link = os.path.join(args.output_dir, "latest")

@@ -16,10 +16,13 @@ help:
 	@echo "Profiling:"
 	@echo "  profile        - Run profiling job (<2 min)"
 	@echo ""
+	@echo "Monitoring:"
+	@echo "  dashboard      - Launch live stability dashboard"
+	@echo "  tensorboard    - Launch TensorBoard for latest run"
+	@echo ""
 	@echo "Utilities:"
 	@echo "  check          - Check installation and dependencies"
 	@echo "  clean          - Clean generated files"
-	@echo "  tensorboard    - Launch TensorBoard for latest run"
 
 # Install dependencies
 install:
@@ -32,18 +35,18 @@ install-dev: install
 # Quick smoke test (<2 minutes)
 train_smoke:
 	@echo "Running smoke test (target: <2 minutes)..."
-	timeout 130s python train.py --epochs 2 --steps_per_epoch 6 --batch_size 2 --max_new_tokens 10
+	timeout 130s python3 train.py --epochs 2 --steps_per_epoch 6 --batch_size 2 --max_new_tokens 10
 	@echo "Smoke test completed!"
 
 # Quick training run (~5 minutes)
 train_quick:
 	@echo "Running quick training (target: ~5 minutes)..."
-	python train.py --epochs 5 --steps_per_epoch 10 --batch_size 4 --max_new_tokens 15
+	python3 train.py --epochs 5 --steps_per_epoch 10 --batch_size 4 --max_new_tokens 15
 
 # Full training run (~15 minutes)
 train_full:
 	@echo "Running full training (target: ~15 minutes)..."
-	python train.py --epochs 10 --steps_per_epoch 15 --batch_size 8 --max_new_tokens 20
+	python3 train.py --epochs 10 --steps_per_epoch 15 --batch_size 8 --max_new_tokens 20
 
 # Check installation
 check:
@@ -74,6 +77,11 @@ tensorboard:
 	else \
 		echo "No latest run found. Run training first."; \
 	fi
+
+# Launch Stability Dashboard
+dashboard:
+	@echo "Launching RLHF Stability Dashboard..."
+	@python3 scripts/serve_dashboard.py
 
 # Run profiling job (<2 minutes)
 profile:

@@ -184,6 +184,11 @@ class PPOTrainer:
                 kl_penalty
             )
             
+            # Store tensors for stability logging
+            metrics['rewards'] = rewards
+            metrics['advantages'] = advantages
+            metrics['kl_penalty'] = kl_penalty
+            
             # Ensure loss requires gradients
             if not loss.requires_grad:
                 # If loss doesn't require gradients, create a dummy loss that does
