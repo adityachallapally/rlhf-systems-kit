@@ -13,6 +13,9 @@ help:
 	@echo "  train_quick    - Quick training run (5 min)"
 	@echo "  train_full     - Full training run (15 min)"
 	@echo ""
+	@echo "Profiling:"
+	@echo "  profile        - Run profiling job (<2 min)"
+	@echo ""
 	@echo "Utilities:"
 	@echo "  check          - Check installation and dependencies"
 	@echo "  clean          - Clean generated files"
@@ -55,8 +58,11 @@ check:
 # Clean generated files
 clean:
 	rm -rf runs/
+	rm -rf profiles/
 	rm -rf __pycache__/
 	rm -rf rlhf_core/__pycache__/
+	rm -rf profiler/__pycache__/
+	rm -rf tools/__pycache__/
 	rm -rf *.pyc
 	@echo "Cleaned generated files"
 
@@ -68,6 +74,12 @@ tensorboard:
 	else \
 		echo "No latest run found. Run training first."; \
 	fi
+
+# Run profiling job (<2 minutes)
+profile:
+	@echo "Running profiling job (target: <2 minutes)..."
+	timeout 130s python3 tools/run_profile.py --steps 1 --batch_size 2 --seq_len 10
+	@echo "Profiling completed!"
 
 # Run tests (if pytest is installed)
 test:
