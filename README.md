@@ -1,33 +1,58 @@
 # RLHF Systems Kit
 
-This project is an open-source toolkit for **understanding, profiling, and debugging RLHF pipelines** at small scale (GPT-2 / ResNet-18 level). The aim is to **expose internals**, **optimize efficiency**, and **provide dashboards** that engineers can use immediately.
+A comprehensive, open-source toolkit for **understanding, profiling, and debugging RLHF (Reinforcement Learning from Human Feedback) pipelines** at small scale (GPT-2 / ResNet-18 level). This project aims to **expose internals**, **optimize efficiency**, and **provide production-ready dashboards** that ML engineers and researchers can use immediately.
 
-It combines:
+## 🎯 What This Project Solves
 
-* A **thin RLHF runner** (toy PPO loop, GPT-2 policy, toy reward model).
-* A **Profiler** (time/memory breakdown, traces, flame graphs).
-* A **Training Stability Dashboard** (monitor KL, drift, gradient norms, reward variance).
-* A **Memory Optimizer** (per-model memory usage, batch/placement suggestions).
-* **Adapters** for TRL and OpenRLHF.
-* **CI + Docs** for reproducibility and adoption.
+RLHF training is notoriously difficult to debug and optimize. This toolkit addresses the core challenges:
 
-The goal is to ship something that is **practical** for engineers to run today and **credible** enough to showcase deep RL systems knowledge.
+- **🔍 Visibility**: Real-time monitoring of training stability, KL divergence, reward variance, and gradient norms
+- **⚡ Performance**: Profiling tools to identify bottlenecks in rollout, reward scoring, PPO updates, and evaluation
+- **💾 Memory Optimization**: Intelligent suggestions for batch sizes, gradient accumulation, and model placement
+- **🔄 Integration**: Drop-in adapters for popular RLHF frameworks (TRL, OpenRLHF)
+- **📊 Production Ready**: Live dashboards, automated reporting, and CI/CD integration
+
+## 🚀 Key Features
+
+- **Thin RLHF Runner**: Minimal, reproducible PPO implementation with GPT-2 policy and toy reward models
+- **Advanced Profiler**: Comprehensive timing analysis, memory profiling, and flame graph generation
+- **Training Stability Dashboard**: Real-time monitoring with automated warning systems
+- **Memory Optimizer**: Per-model memory analysis and intelligent configuration suggestions
+- **Framework Adapters**: Seamless integration with TRL and OpenRLHF
+- **Automated CI/CD**: Reproducible builds, testing, and documentation generation
 
 ---
 
-## 🚀 Quick Start
+## 📋 Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Core Components](#core-components)
+- [Usage Examples](#usage-examples)
+- [API Reference](#api-reference)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Development Roadmap](#development-roadmap)
+- [FAQ](#faq)
+
+---
+
+## 🛠️ Installation
 
 ### Prerequisites
 
 - Python 3.8+
 - PyTorch 2.0+
-- CUDA (optional, for GPU acceleration)
+- CUDA 11.8+ (for GPU acceleration)
+- 8GB+ RAM (16GB+ recommended)
+- 2GB+ GPU VRAM (for GPU training)
 
-### Installation
+### Quick Install
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/adityachallapally/rlhf-systems-kit.git
 cd rlhf-systems-kit
 
 # Install dependencies
@@ -36,6 +61,30 @@ pip install -r requirements.txt
 # Verify installation
 make check
 ```
+
+### Development Install
+
+```bash
+# Install in development mode
+pip install -e .
+
+# Install development dependencies
+pip install -e ".[dev]"
+```
+
+### GPU Support
+
+```bash
+# For CUDA 11.8
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# For CUDA 12.1
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+```
+
+---
+
+## 🚀 Quick Start
 
 ### Run Smoke Test
 
@@ -47,9 +96,29 @@ make train_smoke
 python train.py --epochs 2 --steps_per_epoch 6 --batch_size 2
 ```
 
+### Custom Training
+
+```bash
+# Quick training (~5 minutes)
+make train_quick
+
+# Full training (~15 minutes)
+make train_full
+
+# Custom parameters
+python train.py \
+    --epochs 5 \
+    --steps_per_epoch 10 \
+    --batch_size 4 \
+    --max_new_tokens 15 \
+    --learning_rate 1e-5 \
+    --kl_coef 0.1 \
+    --seed 42
+```
+
 ---
 
-## 📁 Repository Structure
+## 📁 Project Structure
 
 ```
 rlhf-systems-kit/
@@ -67,7 +136,9 @@ rlhf-systems-kit/
 ├── test_implementation.py # Test script
 ├── Makefile            # Build targets
 ├── requirements.txt    # Dependencies
-└── README.md          # This file
+├── setup.py            # Package setup
+├── INSTALL.md          # Installation guide
+└── README.md           # This file
 ```
 
 ---
@@ -137,46 +208,6 @@ metrics = trainer.train_step(prompts, max_new_tokens=20)
 
 ---
 
-## 🎯 Training Scripts
-
-### Main Training Script (`train.py`)
-
-```bash
-# Basic training
-python train.py
-
-# Custom parameters
-python train.py \
-    --epochs 5 \
-    --steps_per_epoch 10 \
-    --batch_size 4 \
-    --max_new_tokens 15 \
-    --learning_rate 1e-5 \
-    --kl_coef 0.1 \
-    --seed 42
-```
-
-### Makefile Targets
-
-```bash
-# Quick smoke test (<2 minutes)
-make train_smoke
-
-# Quick training (~5 minutes)
-make train_quick
-
-# Full training (~15 minutes)
-make train_full
-
-# Check installation
-make check
-
-# Launch TensorBoard
-make tensorboard
-```
-
----
-
 ## 📊 Logging & Monitoring
 
 ### Log Formats
@@ -238,25 +269,24 @@ trainer.load_checkpoint("checkpoint.pt")
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing & Verification
 
-### Run Tests
-
+### Demo Script
 ```bash
-# Test implementation
-python test_implementation.py
-
-# Run demo (no dependencies required)
-python demo.py
+python demo.py  # Works without external dependencies
 ```
 
-### Test Coverage
+### Test Script
+```bash
+python test_implementation.py  # Requires dependencies
+```
 
-- Policy model functionality
-- Reward model computation
-- PPO training loop
-- Reproducibility
-- Logging and checkpointing
+### Makefile Targets
+```bash
+make check      # Verify installation
+make clean      # Clean generated files
+make tensorboard # Launch TensorBoard
+```
 
 ---
 
@@ -267,7 +297,7 @@ python demo.py
 - **Steps per epoch**: 6
 - **Batch size**: 2
 - **Max new tokens**: 10
-- **Target**: Complete training loop
+- **Target**: Complete training loop demonstration
 
 ### Quick Training (~5 minutes)
 - **Epochs**: 5
@@ -358,32 +388,123 @@ python train.py --epochs 1 --steps_per_epoch 2 --batch_size 1
 
 ---
 
-## 🔮 Future Enhancements
+## 🔮 Development Roadmap
 
-### Planned Features
+### **M1: Runner (✅ COMPLETED)**
+- ✅ GPT-2 policy model (tiny)
+- ✅ Toy reward model (sentiment classifier)
+- ✅ PPO loop with deterministic seed
+- ✅ Logs: JSONL + TensorBoard
+- ✅ Target: <2 min smoke run on CPU or single GPU
 
-- **Profiler integration**: Time/memory breakdown
-- **Stability dashboard**: Real-time monitoring
-- **Memory optimization**: Batch size suggestions
-- **TRL/OpenRLHF adapters**: Drop-in integration
-- **CI/CD pipeline**: Automated testing
+### **M2: Profiler (Next)**
+- 🔄 Instrument stages with timers + traces
+- 🔄 Use `torch.profiler` to emit timeline + CSV op stats
+- 🔄 Optional `nsys` wrapper if installed
 
-### Contributing
+### **M3: Stability Dashboard**
+- 🔄 Real-time + offline monitoring of RLHF health
+- 🔄 Metrics: KL value, KL target error, entropy, reward mean/variance
+- 🔄 FastAPI server for live charts
 
-1. Fork the repository
-2. Create a feature branch
-3. Implement changes
-4. Add tests
-5. Submit pull request
+### **M4: Memory Optimizer**
+- 🔄 Per-module CUDA memory stats
+- 🔄 Tools for memory analysis and config suggestions
+
+### **M5: Adapters**
+- 🔄 Enable profiling/monitoring in TRL and OpenRLHF
+- 🔄 Drop-in integration with existing frameworks
+
+### **M6: CI + Docs**
+- 🔄 Dockerfile + CI workflow
+- 🔄 Automated testing and documentation
 
 ---
 
-## 📚 References
+## 🤝 Contributing
 
-- [PPO Paper](https://arxiv.org/abs/1707.06347)
-- [RLHF Paper](https://arxiv.org/abs/2203.02155)
-- [Hugging Face Transformers](https://huggingface.co/docs/transformers/)
-- [PyTorch Documentation](https://pytorch.org/docs/)
+### Getting Started
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes
+4. Add tests and ensure they pass
+5. Commit your changes: `git commit -m 'Add amazing feature'`
+6. Push to the branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
+
+### Development Setup
+
+```bash
+# Clone and setup
+git clone https://github.com/adityachallapally/rlhf-systems-kit.git
+cd rlhf-systems-kit
+pip install -e ".[dev]"
+
+# Run tests
+make all-checks
+```
+
+### Code Style
+
+- Follow PEP 8 guidelines
+- Use type hints where appropriate
+- Add docstrings for all functions
+- Run `make format` before committing
+
+---
+
+## 📚 API Reference
+
+### PolicyModel
+
+```python
+class PolicyModel(nn.Module):
+    def __init__(self, model_name: str = "sshleifer/tiny-gpt2", device: str = "cpu")
+    def forward(self, input_ids, attention_mask=None) -> Dict[str, torch.Tensor]
+    def sample(self, prompt_ids, max_new_tokens=20, temperature=1.0) -> Tuple[torch.Tensor, torch.Tensor]
+    def get_logprobs(self, input_ids, attention_mask=None) -> torch.Tensor
+    def get_kl_divergence(self, input_ids, reference_model) -> torch.Tensor
+```
+
+### ToyRewardModel
+
+```python
+class ToyRewardModel(nn.Module):
+    def __init__(self, model_name: str = "sshleifer/tiny-gpt2", device: str = "cpu")
+    def compute_reward(self, input_ids, reward_type="sentiment") -> torch.Tensor
+    def get_reward_stats(self, rewards) -> Dict[str, float]
+```
+
+### PPOTrainer
+
+```python
+class PPOTrainer:
+    def __init__(self, policy_model, reference_model, reward_model, device="cpu", **kwargs)
+    def train_step(self, prompts, max_new_tokens=20, batch_size=4) -> Dict[str, float]
+    def train_epoch(self, prompts, steps_per_epoch=10, **kwargs) -> List[Dict[str, float]]
+    def save_checkpoint(self, path: str)
+    def load_checkpoint(self, path: str)
+```
+
+---
+
+## ❓ FAQ
+
+### Q: Why use such small models?
+A: Small models (GPT-2 tiny) ensure fast iteration and debugging while maintaining the core RLHF dynamics.
+
+### Q: How do I scale this to larger models?
+A: The architecture is designed to be model-agnostic. Simply change the model_name parameter to use larger models.
+
+### Q: Can I use my own reward function?
+A: Yes! Extend the ToyRewardModel class or implement your own reward computation logic.
+
+### Q: How do I monitor training progress?
+A: Use the built-in logging (JSONL + TensorBoard) or extend the monitoring system.
+
+### Q: Is this production-ready?
+A: This is a research and debugging toolkit. For production, consider using established frameworks like TRL or OpenRLHF.
 
 ---
 
@@ -398,6 +519,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Hugging Face for the Transformers library
 - OpenAI for the PPO algorithm
 - The RLHF research community
+- Contributors and maintainers
+
+---
+
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/adityachallapally/rlhf-systems-kit/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/adityachallapally/rlhf-systems-kit/discussions)
+- **Documentation**: [Wiki](https://github.com/adityachallapally/rlhf-systems-kit/wiki)
 
 ---
 
