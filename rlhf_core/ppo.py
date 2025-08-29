@@ -2,12 +2,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import AdamW
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
 from tqdm import tqdm
 import json
 import os
 from datetime import datetime
+
+# Profiling imports
+from profiler.hooks import prof_stage, get_profiler_registry
 
 
 class PPOTrainer:
@@ -106,6 +109,9 @@ class PPOTrainer:
                    batch_size: int = 4) -> Dict[str, float]:
         """Single training step."""
         
+        # Get profiler registry
+        registry = get_profiler_registry()
+        
         # Set models to appropriate modes
         self.policy_model.set_train_mode(True)
         self.reference_model.set_train_mode(False)
@@ -116,60 +122,110 @@ class PPOTrainer:
         prompt_ids = tokenizer(prompts, return_tensors='pt', padding=True, truncation=True)
         prompt_ids = prompt_ids['input_ids'].to(self.device)
         
-        # Sample from current policy
-        with torch.no_grad():
-            sequences, new_token_logprobs = self.policy_model.sample(
-                prompt_ids, 
-                max_new_tokens=max_new_tokens,
-                temperature=1.0,
-                do_sample=True
+        # Stage 1: Rollout (sample from current policy)
+        with prof_stage("rollout", step_index=0, global_step=self.step) as rollout_context:
+            with torch.no_grad():
+                sequences, new_token_logprobs = self.policy_model.sample(
+                    prompt_ids, 
+                    max_new_tokens=max_new_tokens,
+                    temperature=1.0,
+                    do_sample=True
+                )
+            
+            # Set metadata for rollout stage
+            rollout_context.set_metadata(
+                tokens_processed=sequences.size(1),
+                batch_size=len(prompts),
+                seq_len=sequences.size(1)
             )
         
-        # Get logprobs from reference model
-        with torch.no_grad():
-            reference_logprobs = self.reference_model.get_logprobs(sequences)
+        # Stage 2: Reward scoring
+        with prof_stage("reward_scoring", step_index=1, global_step=self.step) as reward_context:
+            with torch.no_grad():
+                rewards = self.reward_model.compute_reward(sequences, reward_type="sentiment")
+            
+            reward_context.set_metadata(
+                tokens_processed=sequences.size(1),
+                batch_size=len(prompts),
+                seq_len=sequences.size(1)
+            )
         
-        # Compute rewards
-        with torch.no_grad():
-            rewards = self.reward_model.compute_reward(sequences, reward_type="sentiment")
+        # Stage 3: KL penalty calculation
+        with prof_stage("kl_penalty_calc", step_index=2, global_step=self.step) as kl_context:
+            with torch.no_grad():
+                reference_logprobs = self.reference_model.get_logprobs(sequences)
+            
+            current_logprobs = self.policy_model.get_logprobs(sequences)
+            kl_penalty = self.compute_kl_penalty(current_logprobs, reference_logprobs)
+            
+            kl_context.set_metadata(
+                tokens_processed=sequences.size(1),
+                batch_size=len(prompts),
+                seq_len=sequences.size(1)
+            )
         
-        # Compute advantages (simple baseline)
-        advantages = rewards  # For simplicity, use rewards directly as advantages
+        # Stage 4: GAE calculation (compute advantages)
+        with prof_stage("gae_calc", step_index=3, global_step=self.step) as gae_context:
+            advantages = rewards  # For simplicity, use rewards directly as advantages
+            
+            gae_context.set_metadata(
+                tokens_processed=sequences.size(1),
+                batch_size=len(prompts),
+                seq_len=sequences.size(1)
+            )
         
-        # Compute KL penalty
-        current_logprobs = self.policy_model.get_logprobs(sequences)
-        kl_penalty = self.compute_kl_penalty(current_logprobs, reference_logprobs)
+        # Stage 5: PPO update
+        with prof_stage("ppo_update", step_index=4, global_step=self.step) as ppo_context:
+            # Compute PPO loss
+            loss, metrics = self.ppo_loss(
+                new_token_logprobs.mean(dim=1),  # Average logprobs across new tokens
+                current_logprobs.mean(dim=1),    # Average logprobs across sequence
+                advantages,
+                kl_penalty
+            )
+            
+            # Ensure loss requires gradients
+            if not loss.requires_grad:
+                # If loss doesn't require gradients, create a dummy loss that does
+                dummy_param = next(self.policy_model.get_trainable_params())
+                loss = loss + 0.0 * dummy_param.sum()
+            
+            # Backward pass
+            self.optimizer.zero_grad()
+            loss.backward()
+            
+            # Gradient clipping
+            torch.nn.utils.clip_grad_norm_(self.policy_model.get_trainable_params(), self.max_grad_norm)
+            
+            # Optimizer step
+            self.optimizer.step()
+            
+            ppo_context.set_metadata(
+                tokens_processed=sequences.size(1),
+                batch_size=len(prompts),
+                seq_len=sequences.size(1)
+            )
         
-        # Compute PPO loss
-        loss, metrics = self.ppo_loss(
-            new_token_logprobs.mean(dim=1),  # Average logprobs across new tokens
-            current_logprobs.mean(dim=1),    # Average logprobs across sequence
-            advantages,
-            kl_penalty
-        )
-        
-        # Backward pass
-        self.optimizer.zero_grad()
-        loss.backward()
-        
-        # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(self.policy_model.get_trainable_params(), self.max_grad_norm)
-        
-        # Optimizer step
-        self.optimizer.step()
-        
-        # Update step counter
-        self.step += 1
-        
-        # Add additional metrics
-        metrics.update({
-            'step': self.step,
-            'epoch': self.epoch,
-            'reward_mean': rewards.mean().item(),
-            'reward_std': rewards.std().item(),
-            'sequence_length_mean': sequences.size(1),
-            'learning_rate': self.optimizer.param_groups[0]['lr']
-        })
+        # Stage 6: Evaluation step
+        with prof_stage("eval_step", step_index=5, global_step=self.step) as eval_context:
+            # Update step counter
+            self.step += 1
+            
+            # Add additional metrics
+            metrics.update({
+                'step': self.step,
+                'epoch': self.epoch,
+                'reward_mean': rewards.mean().item(),
+                'reward_std': rewards.std().item(),
+                'sequence_length_mean': sequences.size(1),
+                'learning_rate': self.optimizer.param_groups[0]['lr']
+            })
+            
+            eval_context.set_metadata(
+                tokens_processed=sequences.size(1),
+                batch_size=len(prompts),
+                seq_len=sequences.size(1)
+            )
         
         return metrics
     
@@ -228,6 +284,16 @@ class PPOTrainer:
         self.optimizer.load_state_dict(checkpoint['optimizer_state'])
         self.step = checkpoint['step']
         self.epoch = checkpoint['epoch']
+    
+    def get_profiling_results(self) -> List[Dict[str, Any]]:
+        """Get profiling results from the global registry."""
+        registry = get_profiler_registry()
+        return registry.get_results()
+    
+    def clear_profiling_results(self):
+        """Clear profiling results from the global registry."""
+        registry = get_profiler_registry()
+        registry.clear()
 
 
 class RolloutBuffer:
