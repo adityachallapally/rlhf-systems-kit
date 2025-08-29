@@ -1,7 +1,3 @@
-Perfect. Here’s a **long, detailed README** that serves as both documentation and a *playbook* for Cursor (or Devin) to read before doing any tasks. It gives context, repo structure, goals, and acceptance criteria. You can drop this into your repo root as `README.md`, and then whenever you assign a task to Cursor you can say “read the README for context, now do M2 Profiler” etc.
-
----
-
 # RLHF Systems Kit
 
 This project is an open-source toolkit for **understanding, profiling, and debugging RLHF pipelines** at small scale (GPT-2 / ResNet-18 level). The aim is to **expose internals**, **optimize efficiency**, and **provide dashboards** that engineers can use immediately.
