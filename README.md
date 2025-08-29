@@ -243,6 +243,45 @@ metrics = trainer.train_step(prompts, max_new_tokens=20)
 
 ---
 
+## 📊 Training Stability Dashboard
+
+The RLHF Systems Kit includes a comprehensive stability monitoring system that tracks key metrics during training:
+
+### Key Metrics Monitored
+
+- **KL Divergence**: Measures policy divergence from reference model
+- **Policy Entropy**: Tracks exploration vs exploitation balance  
+- **Reward Statistics**: Mean and variance of rewards
+- **Gradient Norms**: Global L2 norm of policy gradients
+- **PPO Clip Fraction**: Frequency of PPO clipping
+- **Throughput**: Tokens processed per second
+
+### Instability Thresholds
+
+- KL > 0.2: Potential runaway divergence
+- Entropy < 0.1: Policy collapse
+- Gradient Norm > 1000: Exploding gradients
+- Reward Std > 2.0: High variance instability
+
+### Usage
+
+```bash
+# Run training with stability monitoring
+make train_smoke
+
+# View offline analysis
+jupyter notebook notebooks/stability_dashboard.ipynb
+
+# Launch live dashboard
+make dashboard
+```
+
+The dashboard will be available at http://localhost:8000/ and provides:
+- Real-time metric plots with auto-refresh
+- Warning banners for threshold violations
+- Comprehensive stability analysis
+- Export capabilities for further analysis
+
 ## 🔍 Reproducibility
 
 ### Deterministic Training
@@ -286,6 +325,7 @@ python test_implementation.py  # Requires dependencies
 make check      # Verify installation
 make clean      # Clean generated files
 make tensorboard # Launch TensorBoard
+make dashboard  # Launch live stability dashboard
 ```
 
 ---
@@ -402,10 +442,11 @@ python train.py --epochs 1 --steps_per_epoch 2 --batch_size 1
 - 🔄 Use `torch.profiler` to emit timeline + CSV op stats
 - 🔄 Optional `nsys` wrapper if installed
 
-### **M3: Stability Dashboard**
-- 🔄 Real-time + offline monitoring of RLHF health
-- 🔄 Metrics: KL value, KL target error, entropy, reward mean/variance
-- 🔄 FastAPI server for live charts
+### **M3: Stability Dashboard (✅ COMPLETED)**
+- ✅ Real-time + offline monitoring of RLHF health
+- ✅ Metrics: KL value, KL target error, entropy, reward mean/variance
+- ✅ FastAPI server for live charts
+- ✅ Comprehensive plotting utilities and offline analysis
 
 ### **M4: Memory Optimizer**
 - 🔄 Per-module CUDA memory stats
