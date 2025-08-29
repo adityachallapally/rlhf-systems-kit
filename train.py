@@ -21,15 +21,23 @@ from rlhf_core.reward import ToyRewardModel
 from rlhf_core.ppo import PPOTrainer
 
 
-def set_seed(seed: int):
-    """Set random seeds for reproducibility."""
+def set_all_seeds(seed: int):
+    """Set all random seeds for complete determinism."""
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
+    torch.use_deterministic_algorithms(True, warn_only=True)
     torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    # disable TF32 so matmul kernels pick deterministic paths
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
     os.environ['PYTHONHASHSEED'] = str(seed)
+
+# Set seeds early from environment variable
+SEED = int(os.getenv("SEED", "123"))
+set_all_seeds(SEED)
 
 
 def setup_logging(log_dir: str):
@@ -73,15 +81,23 @@ def log_metrics(writer: SummaryWriter, metrics: dict, step: int, log_file: str):
         if isinstance(value, (int, float)):
             writer.add_scalar(key, value, step)
     
-    # Log to JSONL file
+    # Log to JSONL file - deterministic logging without timestamps
     log_entry = {
-        'timestamp': datetime.now().isoformat(),
         'step': step,
         **metrics
     }
     
+    # Round floats to avoid minor kernel noise causing string diffs
+    safe_entry = {}
+    for k, v in log_entry.items():
+        if isinstance(v, float):
+            safe_entry[k] = round(v, 8)
+        else:
+            safe_entry[k] = v
+    
     with open(log_file, 'a') as f:
-        f.write(json.dumps(log_entry) + '\n')
+        json.dump(safe_entry, f, separators=(",", ":"))
+        f.write("\n")
 
 
 def main():
@@ -108,7 +124,7 @@ def main():
     print(f"Using device: {device}")
     
     # Set seed for reproducibility
-    set_seed(args.seed)
+    set_all_seeds(args.seed)
     print(f"Set random seed: {args.seed}")
     
     # Create output directories
@@ -155,7 +171,8 @@ def main():
         reward_model=reward_model,
         device=device,
         learning_rate=args.learning_rate,
-        kl_coef=args.kl_coef
+        kl_coef=args.kl_coef,
+        seed=args.seed
     )
     
     # Create sample prompts
@@ -229,9 +246,23 @@ def main():
     
     # Create a symlink to the latest run
     latest_link = os.path.join(args.output_dir, "latest")
-    if os.path.exists(latest_link):
-        os.remove(latest_link)
-    os.symlink(run_dir, latest_link)
+    
+    # Remove existing symlink or file if it exists
+    if os.path.exists(latest_link) or os.path.islink(latest_link):
+        try:
+            if os.path.islink(latest_link):
+                os.unlink(latest_link)
+            else:
+                os.remove(latest_link)
+        except OSError:
+            pass  # Ignore errors if file is already gone
+    
+    # Create new symlink
+    try:
+        os.symlink(run_dir, latest_link)
+    except OSError as e:
+        logger.warning(f"Could not create symlink 'latest': {e}")
+        # Continue without symlink - this is not critical
     
     print(f"\nTraining completed successfully!")
     print(f"Total time: {total_time:.2f} seconds")

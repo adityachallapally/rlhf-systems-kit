@@ -1,0 +1,45 @@
+2025-08-28 21:17:17,216 - INFO - Starting RLHF training run: runs/run_20250828_211717
+2025-08-28 21:17:17,217 - INFO - Device: cpu, Seed: 42
+2025-08-28 21:17:17,219 - INFO - Initializing models...
+2025-08-28 21:17:22,331 - INFO - Models initialized successfully
+2025-08-28 21:17:22,332 - INFO - Created 10 sample prompts
+2025-08-28 21:17:22,332 - INFO - Starting training loop...
+2025-08-28 21:17:22,332 - INFO - Starting epoch 1/5
+2025-08-28 21:17:26,751 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_5.pt
+2025-08-28 21:17:26,779 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_10.pt
+2025-08-28 21:17:26,780 - INFO - Epoch 1 complete:
+2025-08-28 21:17:26,780 - INFO -   Avg Reward: 0.0000
+2025-08-28 21:17:26,780 - INFO -   Avg KL: -0.0000
+2025-08-28 21:17:26,780 - INFO -   Avg Loss: -0.0000
+2025-08-28 21:17:26,780 - INFO - Starting epoch 2/5
+2025-08-28 21:17:31,312 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_15.pt
+2025-08-28 21:17:31,337 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_20.pt
+2025-08-28 21:17:31,337 - INFO - Epoch 2 complete:
+2025-08-28 21:17:31,337 - INFO -   Avg Reward: 0.0000
+2025-08-28 21:17:31,338 - INFO -   Avg KL: 0.0000
+2025-08-28 21:17:31,338 - INFO -   Avg Loss: 0.0000
+2025-08-28 21:17:31,338 - INFO - Starting epoch 3/5
+2025-08-28 21:17:35,557 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_25.pt
+2025-08-28 21:17:35,582 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_30.pt
+2025-08-28 21:17:35,583 - INFO - Epoch 3 complete:
+2025-08-28 21:17:35,583 - INFO -   Avg Reward: 0.0000
+2025-08-28 21:17:35,583 - INFO -   Avg KL: 0.0000
+2025-08-28 21:17:35,583 - INFO -   Avg Loss: -0.0000
+2025-08-28 21:17:35,583 - INFO - Starting epoch 4/5
+2025-08-28 21:17:39,568 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_35.pt
+2025-08-28 21:17:39,612 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_40.pt
+2025-08-28 21:17:39,612 - INFO - Epoch 4 complete:
+2025-08-28 21:17:39,613 - INFO -   Avg Reward: 0.0000
+2025-08-28 21:17:39,613 - INFO -   Avg KL: -0.0000
+2025-08-28 21:17:39,613 - INFO -   Avg Loss: -0.0000
+2025-08-28 21:17:39,613 - INFO - Starting epoch 5/5
+2025-08-28 21:17:43,694 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_45.pt
+2025-08-28 21:17:43,717 - INFO - Saved checkpoint: runs/run_20250828_211717/checkpoints/checkpoint_step_50.pt
+2025-08-28 21:17:43,717 - INFO - Epoch 5 complete:
+2025-08-28 21:17:43,717 - INFO -   Avg Reward: 0.0000
+2025-08-28 21:17:43,717 - INFO -   Avg KL: 0.0000
+2025-08-28 21:17:43,718 - INFO -   Avg Loss: 0.0000
+2025-08-28 21:17:43,722 - INFO - Saved final checkpoint: runs/run_20250828_211717/checkpoints/final_checkpoint.pt
+2025-08-28 21:17:43,722 - INFO - Training completed in 21.39 seconds
+2025-08-28 21:17:43,722 - INFO - Total steps: 50
+2025-08-28 21:17:43,722 - INFO - Output directory: runs/run_20250828_211717

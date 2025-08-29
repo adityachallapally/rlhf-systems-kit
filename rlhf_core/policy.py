@@ -51,21 +51,31 @@ class PolicyModel(nn.Module):
                max_new_tokens: int = 20,
                temperature: float = 1.0,
                top_p: float = 0.9,
-               do_sample: bool = True) -> Tuple[torch.Tensor, torch.Tensor]:
+               do_sample: bool = True,
+               generator: Optional[torch.Generator] = None) -> Tuple[torch.Tensor, torch.Tensor]:
         """Sample new tokens given a prompt."""
         self.model.eval()
         
         with torch.no_grad():
-            # Generate new tokens
+            # Generate new tokens with deterministic sampling
+            generate_kwargs = {
+                'max_new_tokens': max_new_tokens,
+                'temperature': temperature,
+                'top_p': top_p,
+                'do_sample': do_sample,
+                'pad_token_id': self.tokenizer.eos_token_id,
+                'return_dict_in_generate': True,
+                'output_scores': True
+            }
+            
+            # For determinism, set a fixed seed if generator is provided
+            if generator is not None:
+                # Set the seed for the model's internal random state
+                torch.manual_seed(generator.initial_seed())
+            
             generated = self.model.generate(
                 prompt_ids,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                do_sample=do_sample,
-                pad_token_id=self.tokenizer.eos_token_id,
-                return_dict_in_generate=True,
-                output_scores=True
+                **generate_kwargs
             )
             
             # Get the full sequence and scores

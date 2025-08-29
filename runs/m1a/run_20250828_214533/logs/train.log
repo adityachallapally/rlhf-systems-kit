@@ -1,0 +1,8 @@
+2025-08-28 21:45:33,949 - INFO - Starting RLHF training run: runs/m1a/run_20250828_214533
+2025-08-28 21:45:33,950 - INFO - Device: cpu, Seed: 123
+2025-08-28 21:45:33,952 - INFO - Initializing models...
+2025-08-28 21:45:37,385 - INFO - Models initialized successfully
+2025-08-28 21:45:37,386 - INFO - Created 10 sample prompts
+2025-08-28 21:45:37,386 - INFO - Starting training loop...
+2025-08-28 21:45:37,386 - INFO - Starting epoch 1/1
+2025-08-28 21:45:37,395 - ERROR - Training error: The following `model_kwargs` are not used by the model: ['generator'] (note: typos in the generate arguments will also show up in this list)

@@ -1,0 +1,22 @@
+2025-08-28 21:22:37,907 - INFO - Starting RLHF training run: runs/run_20250828_212237
+2025-08-28 21:22:37,907 - INFO - Device: cpu, Seed: 42
+2025-08-28 21:22:37,912 - INFO - Initializing models...
+2025-08-28 21:22:42,061 - INFO - Models initialized successfully
+2025-08-28 21:22:42,062 - INFO - Created 10 sample prompts
+2025-08-28 21:22:42,062 - INFO - Starting training loop...
+2025-08-28 21:22:42,063 - INFO - Starting epoch 1/2
+2025-08-28 21:22:43,446 - INFO - Saved checkpoint: runs/run_20250828_212237/checkpoints/checkpoint_step_5.pt
+2025-08-28 21:22:43,448 - INFO - Epoch 1 complete:
+2025-08-28 21:22:43,449 - INFO -   Avg Reward: 0.0000
+2025-08-28 21:22:43,449 - INFO -   Avg KL: -0.0000
+2025-08-28 21:22:43,449 - INFO -   Avg Loss: -0.0000
+2025-08-28 21:22:43,449 - INFO - Starting epoch 2/2
+2025-08-28 21:22:44,813 - INFO - Saved checkpoint: runs/run_20250828_212237/checkpoints/checkpoint_step_10.pt
+2025-08-28 21:22:44,819 - INFO - Epoch 2 complete:
+2025-08-28 21:22:44,820 - INFO -   Avg Reward: 0.0000
+2025-08-28 21:22:44,820 - INFO -   Avg KL: -0.0000
+2025-08-28 21:22:44,820 - INFO -   Avg Loss: -0.0000
+2025-08-28 21:22:44,827 - INFO - Saved final checkpoint: runs/run_20250828_212237/checkpoints/final_checkpoint.pt
+2025-08-28 21:22:44,828 - INFO - Training completed in 2.77 seconds
+2025-08-28 21:22:44,828 - INFO - Total steps: 12
+2025-08-28 21:22:44,828 - INFO - Output directory: runs/run_20250828_212237

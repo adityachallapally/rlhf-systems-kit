@@ -16,6 +16,11 @@ help:
 	@echo "Profiling:"
 	@echo "  profile        - Run profiling job (<2 min)"
 	@echo ""
+	@echo "Verification:"
+	@echo "  verify_m1      - Verify M1: Determinism"
+	@echo "  verify_m2      - Verify M2: Profiler artifacts"
+	@echo "  verify_m3      - Verify M3: Dashboard metrics"
+	@echo ""
 	@echo "Utilities:"
 	@echo "  check          - Check installation and dependencies"
 	@echo "  clean          - Clean generated files"
@@ -80,6 +85,40 @@ profile:
 	@echo "Running profiling job (target: <2 minutes)..."
 	timeout 130s python3 tools/run_profile.py --steps 1 --batch_size 2 --seq_len 10
 	@echo "Profiling completed!"
+
+# M1: Verify determinism
+verify_m1:
+	@echo "Verifying M1: Determinism..."
+	SEED=123 python train.py --seed 123 --output_dir runs/m1a --epochs 1 --steps_per_epoch 2 --batch_size 2 --max_new_tokens 5
+	SEED=123 python train.py --seed 123 --output_dir runs/m1b --epochs 1 --steps_per_epoch 2 --batch_size 2 --max_new_tokens 5
+	@echo "Comparing log files..."
+	head -n 50 runs/m1a/run_*/logs/train.jsonl > /tmp/a.jsonl
+	head -n 50 runs/m1b/run_*/logs/train.jsonl > /tmp/b.jsonl
+	diff /tmp/a.jsonl /tmp/b.jsonl || (echo "❌ M1 FAILED: Logs differ between runs"; exit 1)
+	@echo "✅ M1 PASSED: Determinism verified"
+
+# M2: Verify profiler artifacts and sanity checks
+verify_m2:
+	@echo "Verifying M2: Profiler artifacts and sanity checks..."
+	make profile
+	python tools/check_profile.py
+	test -s profiles/summary.csv
+	test -s profiles/chrome_trace.json
+	test -s profiles/op_stats.csv
+	@echo "✅ M2 PASSED: Profiler artifacts verified"
+
+# M3: Verify dashboard metrics and live server
+verify_m3:
+	@echo "Verifying M3: Dashboard metrics and live server..."
+	@echo "Starting monitoring server..."
+	uvicorn monitor.app:app --port 8765 --reload &
+	@sleep 3
+	@echo "Testing server endpoints..."
+	curl -sf "http://localhost:8765/health" || (echo "❌ Health check failed"; exit 1)
+	curl -sf "http://localhost:8765/alerts?test_alerts=1" | grep -i warning || (echo "❌ Test alerts failed"; exit 1)
+	python tools/check_dashboard_metrics.py
+	@echo "✅ M3 PASSED: Dashboard metrics and server verified"
+	@pkill -f "uvicorn monitor.app:app" || true
 
 # Run tests (if pytest is installed)
 test:
