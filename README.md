@@ -1,5 +1,7 @@
 # RLHF Systems Kit
 
+[![CI](https://github.com/adityachallapally/rlhf-systems-kit/workflows/CI/badge.svg)](https://github.com/adityachallapally/rlhf-systems-kit/actions)
+
 A comprehensive, open-source toolkit for **understanding, profiling, and debugging RLHF (Reinforcement Learning from Human Feedback) pipelines** at small scale (GPT-2 / ResNet-18 level). This project aims to **expose internals**, **optimize efficiency**, and **provide production-ready dashboards** that ML engineers and researchers can use immediately.
 
 ## 🎯 What This Project Solves
@@ -86,14 +88,28 @@ pip install torch torchvision torchaudio --index-url https://download.pytorch.or
 
 ## 🚀 Quick Start
 
-### Run Smoke Test
+### Run Profiled Smoke Test
 
 ```bash
-# Quick smoke test (<2 minutes)
-make train_smoke
+# Quick smoke test with profiling (<2 minutes)
+python train.py --seed 123 --epochs 1 --steps_per_epoch 2 --batch_size 2 --profiler on
 
-# Or run directly
-python train.py --epochs 2 --steps_per_epoch 6 --batch_size 2
+# This creates runs/run_*/ with:
+# - trace.json (Chrome trace for profiling)
+# - op_stats.csv (operation statistics)
+# - stage_times.json (stage timing)
+# - metrics.jsonl (standardized metrics)
+# - sysinfo.json (system information)
+```
+
+### Launch Monitor Dashboard
+
+```bash
+# Monitor the latest run
+python -m monitor.app --run runs/latest
+
+# Or specify a specific run
+python -m monitor.app --run runs/run_20241201_143022
 ```
 
 ### Custom Training
@@ -210,36 +226,66 @@ metrics = trainer.train_step(prompts, max_new_tokens=20)
 
 ## 📊 Logging & Monitoring
 
-### Log Formats
+### Profiler Artifacts
 
-- **JSONL logs**: `runs/logs/train.jsonl` - Machine-readable metrics
-- **TensorBoard**: `runs/tb/` - Interactive visualizations
-- **Console output**: Real-time training progress
+When `--profiler on` is used, each training run creates:
 
-### Key Metrics
+- **`trace.json`**: Chrome trace file for performance analysis
+  - Open in Chrome DevTools Performance tab
+  - Shows CPU/GPU timeline and memory usage
+  
+- **`op_stats.csv`**: Operation-level performance statistics
+  - CPU and CUDA time per operation
+  - Call counts and averages
+  
+- **`stage_times.json`**: Training stage timing
+  - Wall-clock time for each major stage
+  - Peak memory usage per stage
+  
+- **`metrics.jsonl`**: Standardized training metrics
+  - One JSON object per training step
+  - Consistent schema across all runs
+  
+- **`sysinfo.json`**: System and environment information
+  - Python/PyTorch versions
+  - Hardware configuration
+  - Determinism settings
 
-- `total_loss`: Combined PPO + KL loss
-- `policy_loss`: PPO policy gradient loss
-- `kl_loss`: KL divergence penalty
-- `reward_mean/std`: Reward statistics
-- `kl_mean/std`: KL divergence statistics
-- `clip_fraction`: PPO clipping frequency
+### Standardized Metrics Schema
 
-### Example Log Entry
+Each step in `metrics.jsonl` contains:
 
 ```json
 {
-  "timestamp": "2024-01-15T10:30:00",
   "step": 15,
-  "epoch": 2,
-  "total_loss": 0.85,
-  "policy_loss": 0.65,
-  "kl_loss": 0.20,
+  "phase": "ppo_update",
+  "loss": 0.85,
   "reward_mean": 1.2,
-  "kl_mean": 0.15,
-  "clip_fraction": 0.1
+  "reward_var": 0.1,
+  "kl": 0.15,
+  "entropy": 2.0,
+  "clip_frac": 0.1,
+  "grad_norm": 1.0,
+  "lr": 1e-5,
+  "time_ms": 100.0,
+  "seed": 42,
+  "run_id": "run_20241201_143022"
 }
 ```
+
+### Monitor Dashboard
+
+Launch the interactive dashboard:
+
+```bash
+python -m monitor.app --run runs/latest
+```
+
+Features:
+- Real-time metric visualization
+- Automated alerts for training issues
+- Stage timing analysis
+- Profiler artifact access
 
 ---
 
@@ -489,6 +535,53 @@ class PPOTrainer:
 
 ---
 
+## 🔧 Troubleshooting
+
+### Common Issues
+
+#### CUDA Unavailable
+If you see "CUDA not available" warnings:
+```bash
+# Check CUDA installation
+nvidia-smi
+
+# Install PyTorch with CUDA support
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
+
+#### Profiler Artifacts Missing
+If `trace.json` or `op_stats.csv` are not created:
+- Ensure `--profiler on` flag is used
+- Check that PyTorch profiler is available
+- Verify sufficient permissions to write to run directory
+
+#### Monitor Dashboard Issues
+If the Streamlit dashboard fails to load:
+```bash
+# Install Streamlit if missing
+pip install streamlit
+
+# Check run directory exists
+ls -la runs/latest/
+
+# Launch with explicit run path
+python -m monitor.app --run runs/run_20241201_143022
+```
+
+#### Determinism Failures
+If CI determinism checks fail:
+- Verify all seeds are properly set
+- Check for non-deterministic operations
+- Ensure consistent environment variables
+
+### Getting Help
+
+- Check the [runs/README.md](runs/README.md) for artifact descriptions
+- Run tests: `python -m pytest tests/`
+- Verify installation: `make check`
+
+---
+
 ## ❓ FAQ
 
 ### Q: Why use such small models?
@@ -531,4 +624,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Ready to get started? Run `make train_smoke` to see the RLHF training loop in action!** 🚀
+**Ready to get started? Run `python train.py --seed 123 --epochs 1 --steps_per_epoch 2 --batch_size 2 --profiler on` to see the RLHF training loop in action!** 🚀

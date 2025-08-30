@@ -1,5 +1,10 @@
 """
-Monitor package for RLHF training stability dashboard.
+RLHF Training Monitor
+
+Interactive dashboard for monitoring RLHF training runs with metrics visualization,
+alerts, and profiler data access.
 """
 
-__version__ = "0.1.0"
+from .app import main
+
+__all__ = ['main']

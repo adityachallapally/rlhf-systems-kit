@@ -1,264 +1,366 @@
-#!/usr/bin/env python3
 """
-RLHF Training Stability Dashboard
+RLHF Training Monitor
 
-FastAPI app providing real-time monitoring of training metrics with automated warnings.
+A Streamlit-based dashboard for monitoring RLHF training metrics, stage times, and profiler data.
 """
 
-import json
 import os
-import time
+import sys
+import argparse
+import json
+import pandas as pd
+import streamlit as st
+import plotly.express as px
+import plotly.graph_objects as go
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-from datetime import datetime, timedelta
+from typing import Optional, Dict, Any
+import numpy as np
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-import uvicorn
 
-app = FastAPI(
-    title="RLHF Training Stability Dashboard",
-    description="Real-time monitoring with automated warning systems",
-    version="1.0.0"
-)
-
-# Global state for latest metrics
-latest_metrics: Dict[str, Any] = {}
-last_update = None
-
-def load_latest_metrics():
-    """Load the latest metrics from the most recent training run."""
-    global latest_metrics, last_update
-    
-    # Get the directory where this script is located
-    script_dir = Path(__file__).parent.parent
-    latest_link = script_dir / "runs" / "latest"
-    
-    if not latest_link.exists():
-        return {}
-    
-    # Resolve symlink to actual path
-    if latest_link.is_symlink():
-        actual_path = latest_link.resolve()
-    else:
-        actual_path = latest_link
-    
-    log_file = actual_path / "logs" / "train.jsonl"
-    
-    if not log_file.exists():
-        return {}
+def load_metrics(run_path: str) -> Optional[pd.DataFrame]:
+    """Load metrics from metrics.jsonl file."""
+    metrics_file = Path(run_path) / "metrics.jsonl"
+    if not metrics_file.exists():
+        return None
     
     try:
-        # Read the last few lines to get latest metrics
-        with open(log_file, 'r') as f:
-            lines = f.readlines()
-            if lines:
-                # Get the last non-empty line
-                for line in reversed(lines):
-                    line = line.strip()
-                    if line:
-                        try:
-                            latest_metrics = json.loads(line)
-                            last_update = datetime.now()
-                            break
-                        except json.JSONDecodeError:
-                            continue
+        # Read JSONL file
+        data = []
+        with open(metrics_file, 'r') as f:
+            for line in f:
+                if line.strip():
+                    data.append(json.loads(line))
+        
+        if not data:
+            return None
+            
+        df = pd.DataFrame(data)
+        
+        # Convert numeric columns
+        numeric_cols = ['loss', 'reward_mean', 'reward_var', 'kl', 'entropy', 
+                       'clip_frac', 'grad_norm', 'lr', 'time_ms']
+        for col in numeric_cols:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+        
+        return df
     except Exception as e:
-        print(f"Error loading metrics: {e}")
+        st.error(f"Error loading metrics: {e}")
+        return None
+
+
+def load_stage_times(run_path: str) -> Optional[list]:
+    """Load stage timing information."""
+    stage_file = Path(run_path) / "stage_times.json"
+    if not stage_file.exists():
+        return None
     
-    return latest_metrics
+    try:
+        with open(stage_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        st.error(f"Error loading stage times: {e}")
+        return None
 
-def format_metric(value, default="N/A", precision=4):
-    """Helper function to format metric values safely."""
-    if isinstance(value, (int, float)):
-        return f"{value:.{precision}f}"
-    return default
 
-def check_alerts(metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
-    """Check for training stability alerts."""
+def load_sysinfo(run_path: str) -> Optional[Dict[str, Any]]:
+    """Load system information."""
+    sysinfo_file = Path(run_path) / "sysinfo.json"
+    if not sysinfo_file.exists():
+        return None
+    
+    try:
+        with open(sysinfo_file, 'r') as f:
+            return json.load(f)
+    except Exception as e:
+        st.error(f"Error loading system info: {e}")
+        return None
+
+
+def check_alerts(df: pd.DataFrame) -> list:
+    """Check for training alerts based on metrics."""
     alerts = []
     
-    # KL divergence alerts
-    if 'kl' in metrics:
-        kl_value = metrics['kl']
-        if isinstance(kl_value, (int, float)) and kl_value > 0.3:  # High KL
-            alerts.append({
-                'type': 'warning',
-                'metric': 'kl',
-                'value': kl_value,
-                'message': f'KL divergence ({kl_value:.4f}) is high - training may be unstable'
-            })
+    if df.empty:
+        return alerts
     
-    # Entropy collapse alerts
-    if 'entropy' in metrics:
-        entropy_value = metrics['entropy']
-        if isinstance(entropy_value, (int, float)) and entropy_value < 0.01:  # Low entropy
-            alerts.append({
-                'type': 'warning',
-                'metric': 'entropy',
-                'value': entropy_value,
-                'message': f'Entropy ({entropy_value:.4f}) is very low - policy may be collapsing'
-            })
+    # Alert if KL divergence slope is too high (last 200 steps)
+    if 'kl' in df.columns and len(df) >= 10:
+        recent_kl = df['kl'].tail(200).dropna()
+        if len(recent_kl) >= 10:
+            # Calculate rolling slope
+            x = np.arange(len(recent_kl))
+            slope = np.polyfit(x, recent_kl, 1)[0]
+            if abs(slope) > 0.01:  # Threshold for KL slope
+                alerts.append({
+                    'type': 'warning',
+                    'message': f'KL divergence slope is high: {slope:.4f} (last 200 steps)'
+                })
     
-    # Gradient norm alerts
-    if 'grad_norm' in metrics:
-        grad_norm_value = metrics['grad_norm']
-        if isinstance(grad_norm_value, (int, float)) and grad_norm_value > 10.0:  # High gradient norm
-            alerts.append({
-                'type': 'warning',
-                'metric': 'grad_norm',
-                'value': grad_norm_value,
-                'message': f'Gradient norm ({grad_norm_value:.4f}) is very high - potential exploding gradients'
-            })
+    # Alert if reward variance is too high
+    if 'reward_var' in df.columns:
+        recent_var = df['reward_var'].tail(100).dropna()
+        if len(recent_var) > 0:
+            mean_var = recent_var.mean()
+            if mean_var > 2.0:  # Threshold for reward variance
+                alerts.append({
+                    'type': 'warning',
+                    'message': f'High reward variance: {mean_var:.4f} (last 100 steps)'
+                })
     
-    # Reward variance alerts
-    if 'reward_var' in metrics:
-        reward_var_value = metrics['reward_var']
-        if isinstance(reward_var_value, (int, float)) and reward_var_value < 0.001:  # Low reward variance
+    # Alert if loss is NaN or infinite
+    if 'loss' in df.columns:
+        if df['loss'].isna().any() or np.isinf(df['loss']).any():
             alerts.append({
-                'type': 'info',
-                'metric': 'reward_var',
-                'value': reward_var_value,
-                'message': f'Reward variance ({reward_var_value:.6f}) is very low - limited exploration'
+                'type': 'error',
+                'message': 'Loss contains NaN or infinite values'
             })
     
     return alerts
 
-@app.get("/")
-async def root():
-    """Root endpoint with dashboard info."""
-    return {
-        "service": "RLHF Training Stability Dashboard",
-        "version": "1.0.0",
-        "endpoints": {
-            "/health": "Health check",
-            "/metrics": "Latest training metrics",
-            "/alerts": "Current training alerts",
-            "/dashboard": "HTML dashboard view"
-        }
-    }
 
-@app.get("/health")
-async def health_check():
-    """Health check endpoint."""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "service": "rlhf-monitor"
-    }
+def create_metrics_plots(df: pd.DataFrame):
+    """Create interactive plots for training metrics."""
+    if df.empty:
+        st.warning("No metrics data available for plotting.")
+        return
+    
+    # Filter out NaN values for plotting
+    plot_df = df.dropna(subset=['step'])
+    
+    if plot_df.empty:
+        st.warning("No valid step data for plotting.")
+        return
+    
+    # KL Divergence
+    if 'kl' in plot_df.columns:
+        st.subheader("KL Divergence")
+        kl_data = plot_df[['step', 'kl']].dropna()
+        if not kl_data.empty:
+            fig = px.line(kl_data, x='step', y='kl', title='KL Divergence Over Time')
+            fig.update_layout(xaxis_title='Step', yaxis_title='KL Divergence')
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Reward Metrics
+    if 'reward_mean' in plot_df.columns:
+        st.subheader("Reward Metrics")
+        reward_data = plot_df[['step', 'reward_mean', 'reward_var']].dropna()
+        if not reward_data.empty:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=reward_data['step'], y=reward_data['reward_mean'], 
+                                   mode='lines', name='Reward Mean'))
+            if 'reward_var' in reward_data.columns:
+                fig.add_trace(go.Scatter(x=reward_data['step'], y=reward_data['reward_var'], 
+                                       mode='lines', name='Reward Variance'))
+            fig.update_layout(title='Reward Metrics Over Time', xaxis_title='Step', yaxis_title='Reward')
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Loss
+    if 'loss' in plot_df.columns:
+        st.subheader("Training Loss")
+        loss_data = plot_df[['step', 'loss']].dropna()
+        if not loss_data.empty:
+            fig = px.line(loss_data, x='step', y='loss', title='Training Loss Over Time')
+            fig.update_layout(xaxis_title='Step', yaxis_title='Loss')
+            st.plotly_chart(fig, use_container_width=True)
+    
+    # Other metrics
+    other_metrics = ['entropy', 'clip_frac', 'grad_norm']
+    available_metrics = [m for m in other_metrics if m in plot_df.columns]
+    
+    if available_metrics:
+        st.subheader("Other Metrics")
+        for metric in available_metrics:
+            metric_data = plot_df[['step', metric]].dropna()
+            if not metric_data.empty:
+                fig = px.line(metric_data, x='step', y=metric, title=f'{metric.replace("_", " ").title()} Over Time')
+                fig.update_layout(xaxis_title='Step', yaxis_title=metric.replace("_", " ").title())
+                st.plotly_chart(fig, use_container_width=True)
 
-@app.get("/metrics")
-async def get_metrics():
-    """Get the latest training metrics."""
-    load_latest_metrics()
-    
-    if not latest_metrics:
-        raise HTTPException(status_code=404, detail="No training metrics found")
-    
-    return {
-        "metrics": latest_metrics,
-        "last_update": last_update.isoformat() if last_update else None,
-        "timestamp": datetime.now().isoformat()
-    }
 
-@app.get("/alerts")
-async def get_alerts(test_alerts: bool = Query(False, description="Enable test alerts for debugging")):
-    """Get current training alerts."""
-    load_latest_metrics()
+def display_stage_times(stage_times: list):
+    """Display stage timing information."""
+    if not stage_times:
+        st.warning("No stage timing data available.")
+        return
     
-    alerts = check_alerts(latest_metrics)
+    st.subheader("Stage Timing")
     
-    # Add test alerts if requested
-    if test_alerts:
-        test_alerts_list = [
-            {
-                'type': 'warning',
-                'metric': 'kl_test',
-                'value': 0.9,
-                'message': 'TEST: KL divergence is 3x target (0.9 > 0.3)'
-            },
-            {
-                'type': 'warning', 
-                'metric': 'entropy_test',
-                'value': 0.005,
-                'message': 'TEST: Entropy collapse detected (0.005 < 0.01)'
-            },
-            {
-                'type': 'warning',
-                'metric': 'grad_norm_test', 
-                'value': 25.0,
-                'message': 'TEST: Gradient norm spike (25.0 > 10.0)'
-            }
-        ]
-        alerts.extend(test_alerts_list)
+    # Convert to DataFrame for better display
+    stage_df = pd.DataFrame(stage_times)
     
-    return {
-        "alerts": alerts,
-        "count": len(alerts),
-        "timestamp": datetime.now().isoformat()
-    }
+    # Format memory in MB
+    if 'peak_mem_bytes' in stage_df.columns:
+        stage_df['peak_mem_mb'] = stage_df['peak_mem_bytes'] / (1024 * 1024)
+        stage_df['peak_mem_mb'] = stage_df['peak_mem_mb'].round(2)
+    
+    # Display table
+    st.dataframe(stage_df, use_container_width=True)
+    
+    # Create bar chart for stage durations
+    if 'seconds' in stage_df.columns:
+        fig = px.bar(stage_df, x='stage', y='seconds', title='Stage Durations')
+        fig.update_layout(xaxis_title='Stage', yaxis_title='Duration (seconds)')
+        st.plotly_chart(fig, use_container_width=True)
 
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard():
-    """HTML dashboard view."""
-    load_latest_metrics()
-    alerts = check_alerts(latest_metrics)
+
+def display_sysinfo(sysinfo: Dict[str, Any]):
+    """Display system information."""
+    if not sysinfo:
+        st.warning("No system information available.")
+        return
     
-    html_content = f"""
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>RLHF Training Stability Dashboard</title>
-        <style>
-            body {{ font-family: Arial, sans-serif; margin: 20px; }}
-            .header {{ background: #f0f0f0; padding: 20px; border-radius: 5px; }}
-            .metrics {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }}
-            .metric-card {{ background: white; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }}
-            .alerts {{ margin: 20px 0; }}
-            .alert {{ padding: 10px; margin: 5px 0; border-radius: 3px; }}
-            .warning {{ background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }}
-            .info {{ background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }}
-            .refresh {{ background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 3px; cursor: pointer; }}
-        </style>
-    </head>
-    <body>
-        <div class="header">
-            <h1>🚀 RLHF Training Stability Dashboard</h1>
-            <p>Real-time monitoring of training metrics with automated warning systems</p>
-            <button class="refresh" onclick="location.reload()">🔄 Refresh</button>
-        </div>
+    st.subheader("System Information")
+    
+    # Display key system info
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.write("**Environment:**")
+        st.write(f"- Python: {sysinfo.get('python_version', 'N/A')}")
+        st.write(f"- PyTorch: {sysinfo.get('torch_version', 'N/A')}")
+        st.write(f"- Device: {sysinfo.get('device', 'N/A')}")
+        st.write(f"- CUDA Available: {sysinfo.get('cuda_available', 'N/A')}")
+    
+    with col2:
+        st.write("**Hardware:**")
+        st.write(f"- Platform: {sysinfo.get('platform', 'N/A')}")
+        st.write(f"- Processor: {sysinfo.get('processor', 'N/A')}")
+        if sysinfo.get('cuda_available'):
+            st.write(f"- GPU: {sysinfo.get('gpu_name', 'N/A')}")
+            st.write(f"- GPU Memory: {sysinfo.get('gpu_memory_total_gb', 'N/A')} GB")
+    
+    # Display seed and timing
+    st.write("**Training:**")
+    st.write(f"- Seed: {sysinfo.get('seed', 'N/A')}")
+    st.write(f"- Start Time: {sysinfo.get('start_time', 'N/A')}")
+
+
+def main():
+    """Main Streamlit app."""
+    st.set_page_config(
+        page_title="RLHF Training Monitor",
+        page_icon="📊",
+        layout="wide"
+    )
+    
+    st.title("RLHF Training Monitor")
+    st.markdown("Monitor your RLHF training runs with real-time metrics and alerts.")
+    
+    # Get run path from query parameters or default
+    query_params = st.experimental_get_query_params()
+    default_run = query_params.get("run", ["runs/latest"])[0]
+    
+    # Sidebar for configuration
+    st.sidebar.header("Configuration")
+    
+    # Run path input
+    run_path = st.sidebar.text_input(
+        "Run Path",
+        value=default_run,
+        help="Path to the training run directory"
+    )
+    
+    # Check if run exists
+    if not run_path or not Path(run_path).exists():
+        st.error(f"Run directory not found: {run_path}")
+        st.info("Please specify a valid run directory path.")
+        return
+    
+    st.sidebar.success(f"Monitoring run: {run_path}")
+    
+    # Load data
+    metrics_df = load_metrics(run_path)
+    stage_times = load_stage_times(run_path)
+    sysinfo = load_sysinfo(run_path)
+    
+    # Check for alerts
+    alerts = check_alerts(metrics_df) if metrics_df is not None else []
+    
+    # Display alerts
+    if alerts:
+        st.subheader("🚨 Alerts")
+        for alert in alerts:
+            if alert['type'] == 'error':
+                st.error(alert['message'])
+            else:
+                st.warning(alert['message'])
+    
+    # Main content
+    if metrics_df is not None:
+        # Summary statistics
+        st.subheader("�� Training Summary")
+        col1, col2, col3, col4 = st.columns(4)
         
-        <div class="metrics">
-            <div class="metric-card">
-                <h3>📊 Training Status</h3>
-                <p><strong>Last Update:</strong> {last_update.strftime('%H:%M:%S') if last_update else 'Never'}</p>
-                <p><strong>Metrics Count:</strong> {len(latest_metrics)}</p>
-            </div>
-            
-            <div class="metric-card">
-                <h3>🎯 Key Metrics</h3>
-                <p><strong>KL Divergence:</strong> {format_metric(latest_metrics.get('kl'))}</p>
-                <p><strong>Reward Mean:</strong> {format_metric(latest_metrics.get('reward_mean'))}</p>
-                <p><strong>Entropy:</strong> {format_metric(latest_metrics.get('entropy'))}</p>
-            </div>
-        </div>
+        with col1:
+            st.metric("Total Steps", len(metrics_df))
+        with col2:
+            if 'reward_mean' in metrics_df.columns:
+                recent_reward = metrics_df['reward_mean'].tail(10).mean()
+                st.metric("Recent Avg Reward", f"{recent_reward:.4f}" if not pd.isna(recent_reward) else "N/A")
+        with col3:
+            if 'kl' in metrics_df.columns:
+                recent_kl = metrics_df['kl'].tail(10).mean()
+                st.metric("Recent Avg KL", f"{recent_kl:.4f}" if not pd.isna(recent_kl) else "N/A")
+        with col4:
+            if 'loss' in metrics_df.columns:
+                recent_loss = metrics_df['loss'].tail(10).mean()
+                st.metric("Recent Avg Loss", f"{recent_loss:.4f}" if not pd.isna(recent_loss) else "N/A")
         
-        <div class="alerts">
-            <h2>🚨 Training Alerts ({len(alerts)})</h2>
-            {''.join([f'<div class="alert {alert["type"]}"><strong>{alert["metric"]}:</strong> {alert["message"]}</div>' for alert in alerts])}
-            {f'<p><em>No alerts at this time. Training appears stable.</em></p>' if not alerts else ''}
-        </div>
+        # Metrics plots
+        create_metrics_plots(metrics_df)
         
-        <script>
-            // Auto-refresh every 30 seconds
-            setTimeout(() => location.reload(), 30000);
-        </script>
-    </body>
-    </html>
-    """
+        # Raw metrics data
+        st.subheader("📋 Raw Metrics Data")
+        st.dataframe(metrics_df, use_container_width=True)
     
-    return HTMLResponse(content=html_content)
+    # Stage times
+    if stage_times:
+        display_stage_times(stage_times)
+    
+    # System information
+    if sysinfo:
+        display_sysinfo(sysinfo)
+    
+    # Profiler artifacts
+    st.subheader("🔍 Profiler Artifacts")
+    
+    trace_file = Path(run_path) / "trace.json"
+    if trace_file.exists():
+        st.success("✅ Chrome trace available")
+        st.download_button(
+            label="Download trace.json",
+            data=trace_file.read_bytes(),
+            file_name="trace.json",
+            mime="application/json"
+        )
+    else:
+        st.info("ℹ️ No trace.json found (profiler may not have been enabled)")
+    
+    op_stats_file = Path(run_path) / "op_stats.csv"
+    if op_stats_file.exists():
+        st.success("✅ Operation statistics available")
+        st.download_button(
+            label="Download op_stats.csv",
+            data=op_stats_file.read_bytes(),
+            file_name="op_stats.csv",
+            mime="text/csv"
+        )
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("**RLHF Systems Kit Monitor** - Built with Streamlit and Plotly")
+
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8765)
+    # Handle command line arguments for CLI usage
+    if len(sys.argv) > 1:
+        parser = argparse.ArgumentParser(description='RLHF Training Monitor')
+        parser.add_argument('--run', type=str, default='runs/latest',
+                          help='Path to the training run directory')
+        args = parser.parse_args()
+        
+        # Set the run path for Streamlit
+        os.environ['STREAMLIT_RUN_PATH'] = args.run
+    
+    main()
