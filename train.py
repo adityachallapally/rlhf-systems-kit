@@ -38,11 +38,28 @@ def set_all_seeds(seed: int):
     torch.manual_seed(seed)
     print(f"✅ Set torch.manual_seed({seed})")
     
-    if torch.cuda.is_available():
+    # Check if CUDA is available before setting CUDA-specific flags
+    cuda_available = torch.cuda.is_available()
+    
+    if cuda_available:
         torch.cuda.manual_seed_all(seed)
         print(f"✅ Set torch.cuda.manual_seed_all({seed})")
+        
+        # Set CUDA-specific determinism flags
+        torch.backends.cuda.matmul.allow_tf32 = False
+        print("✅ Set torch.backends.cuda.matmul.allow_tf32 = False")
+        
+        # Set CUDA workspace config for deterministic CUBLAS
+        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
+        print("✅ Set CUBLAS_WORKSPACE_CONFIG = :4096:8")
+        
+        # Set CUDA launch blocking for deterministic execution
+        os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+        print("✅ Set CUDA_LAUNCH_BLOCKING = 1")
+    else:
+        print("ℹ️  CUDA not available, skipping CUDA-specific determinism flags")
     
-    # Set PyTorch determinism flags
+    # Set PyTorch determinism flags (available on both CPU and CUDA)
     torch.use_deterministic_algorithms(True, warn_only=True)
     print("✅ Set torch.use_deterministic_algorithms(True)")
     
@@ -52,31 +69,21 @@ def set_all_seeds(seed: int):
     torch.backends.cudnn.deterministic = True
     print("✅ Set torch.backends.cudnn.deterministic = True")
     
-    # Disable TF32 for deterministic matmul kernels
-    torch.backends.cuda.matmul.allow_tf32 = False
-    print("✅ Set torch.backends.cuda.matmul.allow_tf32 = False")
-    
-    torch.backends.cudnn.allow_tf32 = False
-    print("✅ Set torch.backends.cudnn.allow_tf32 = False")
-    
-    # Set CUDA workspace config for deterministic CUBLAS
-    if torch.cuda.is_available():
-        os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':4096:8'
-        print("✅ Set CUBLAS_WORKSPACE_CONFIG = :4096:8")
+    # Disable TF32 for deterministic matmul kernels (CUDA only)
+    if cuda_available:
+        torch.backends.cudnn.allow_tf32 = False
+        print("✅ Set torch.backends.cudnn.allow_tf32 = False")
     
     # Set Python hash seed
     os.environ['PYTHONHASHSEED'] = str(seed)
     print(f"✅ Set PYTHONHASHSEED = {seed}")
-    
-    # Set additional environment variables for determinism
-    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
-    print("✅ Set CUDA_LAUNCH_BLOCKING = 1")
     
     # Set OMP threads for deterministic CPU operations
     os.environ['OMP_NUM_THREADS'] = '1'
     print("✅ Set OMP_NUM_THREADS = 1")
     
     print(f"\n🎯 All determinism flags set for seed {seed}")
+    print(f"🔧 Device: {'CUDA' if cuda_available else 'CPU'}")
 
 
 def setup_logging(log_dir: str):
