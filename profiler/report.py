@@ -48,7 +48,7 @@ class ProfilerReport:
         summary_data = []
         for stage, stage_data in stage_results.items():
             # Calculate averages for numeric fields
-            wall_times = [r.get('wall_time_ms', 0) for r in stage_data]
+            wall_times = [r.get('wall_time', 0) for r in stage_data]
             cpu_mems = [r.get('cpu_mem_mb', 0) for r in stage_data]
             cuda_peaks = [r.get('cuda_mem_mb_peak', 0) for r in stage_data]
             
@@ -57,7 +57,7 @@ class ProfilerReport:
             
             summary_row = {
                 'stage': stage,
-                'wall_time_ms': np.mean(wall_times),
+                'wall_time': np.mean(wall_times),
                 'cpu_mem_mb': np.mean(cpu_mems),
                 'cuda_mem_mb_peak': np.mean(cuda_peaks),
                 'tokens': first_result.get('tokens_processed'),
@@ -69,7 +69,7 @@ class ProfilerReport:
             summary_data.append(summary_row)
         
         # Sort by wall time (descending)
-        summary_data.sort(key=lambda x: x['wall_time_ms'], reverse=True)
+        summary_data.sort(key=lambda x: x['wall_time'], reverse=True)
         
         # Write to CSV
         csv_path = os.path.join(self.summary_dir, filename)
@@ -112,7 +112,7 @@ class ProfilerReport:
         # Calculate total time per stage
         stage_times = {}
         for stage, stage_data in stage_results.items():
-            total_time = sum(r.get('wall_time_ms', 0) for r in stage_data)
+            total_time = sum(r.get('wall_time', 0) for r in stage_data)
             stage_times[stage] = total_time
         
         # Sort stages by time (descending)
@@ -134,16 +134,16 @@ class ProfilerReport:
         # Add value labels on bars
         for i, (bar, time_val) in enumerate(zip(bars, times)):
             ax.text(bar.get_width() + max(times) * 0.01, bar.get_y() + bar.get_height()/2,
-                   f'{time_val:.1f}ms', va='center', ha='left', fontsize=10)
+                   f'{time_val:.3f}s', va='center', ha='left', fontsize=10)
         
         # Customize chart
-        ax.set_xlabel('Wall Time (ms)')
+        ax.set_xlabel('Wall Time (seconds)')
         ax.set_title('RLHF Training Stage Breakdown')
         ax.grid(axis='x', alpha=0.3)
         
         # Add total time annotation
         total_time = sum(times)
-        ax.text(0.02, 0.98, f'Total: {total_time:.1f}ms', 
+        ax.text(0.02, 0.98, f'Total: {total_time:.3f}s', 
                transform=ax.transAxes, fontsize=12, fontweight='bold',
                bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
@@ -184,7 +184,7 @@ class ProfilerReport:
         # Prepare stage data
         stage_data = []
         for stage, stage_results_list in stage_results.items():
-            wall_times = [r.get('wall_time_ms', 0) for r in stage_results_list]
+            wall_times = [r.get('wall_time', 0) for r in stage_results_list]
             cpu_mems = [r.get('cpu_mem_mb', 0) for r in stage_results_list]
             cuda_peaks = [r.get('cuda_mem_mb_peak', 0) for r in stage_results_list]
             
@@ -194,7 +194,7 @@ class ProfilerReport:
             
             stage_data.append({
                 'stage': stage,
-                'wall_time_ms': avg_wall_time,
+                'wall_time': avg_wall_time,
                 'cpu_mb': avg_cpu_mem,
                 'cuda_peak_mb': avg_cuda_peak
             })
@@ -204,29 +204,29 @@ class ProfilerReport:
             max_cuda_peak = max(max_cuda_peak, avg_cuda_peak)
         
         # Sort by wall time
-        stage_data.sort(key=lambda x: x['wall_time_ms'], reverse=True)
+        stage_data.sort(key=lambda x: x['wall_time'], reverse=True)
         
         # Print header
         print("\n" + "="*60)
         print("RLHF Training Profiling Summary")
         print("="*60)
-        print(f"{'stage':<20} {'wall_ms':<10} {'cpu_mb':<10} {'cuda_peak_mb':<15}")
+        print(f"{'stage':<20} {'wall_s':<10} {'cpu_mb':<10} {'cuda_peak_mb':<15}")
         print("-"*60)
         
         # Print stage data
         for stage in stage_data:
-            print(f"{stage['stage']:<20} {stage['wall_time_ms']:<10.1f} "
+            print(f"{stage['stage']:<20} {stage['wall_time']:<10.3f} "
                   f"{stage['cpu_mb']:<10.1f} {stage['cuda_peak_mb']:<15.1f}")
         
         # Print totals
         print("-"*60)
-        print(f"{'total':<20} {total_wall_time:<10.1f} "
+        print(f"{'total':<20} {total_wall_time:<10.3f} "
               f"{total_cpu_mem:<10.1f} {max_cuda_peak:<15.1f}")
         print("="*60)
         
         # Print additional info
         print(f"\nTotal stages profiled: {len(stage_data)}")
-        print(f"Total wall time: {total_wall_time:.1f}ms ({total_wall_time/1000:.3f}s)")
+        print(f"Total wall time: {total_wall_time:.3f}s")
         if max_cuda_peak > 0:
             print(f"Peak CUDA memory: {max_cuda_peak:.1f}MB")
         print()

@@ -57,14 +57,16 @@ def check_stage_time_ratio():
         
         for row in rows:
             stage = row.get("stage", "")
-            ms_str = row.get("wall_time_ms", "0")
-            
+            # Check wall time
+            wall_time_str = row.get("wall_time", "0")
             try:
-                ms = float(ms_str)
-                stage_times.append(ms)
-            except ValueError:
-                print(f"WARNING: Invalid wall_time_ms value '{ms_str}' for stage '{stage}'")
-                continue
+                wall_time = float(wall_time_str)
+                if wall_time < 0:
+                    print(f"WARNING: Invalid wall_time value '{wall_time_str}' for stage '{stage}'")
+                else:
+                    stage_times.append(wall_time)
+            except (ValueError, TypeError):
+                print(f"WARNING: Invalid wall_time value '{wall_time_str}' for stage '{stage}'")
         
         if not stage_times:
             print("ERROR: No stage times found in summary.csv")
@@ -72,7 +74,7 @@ def check_stage_time_ratio():
         
         total_stages = sum(stage_times)
         
-        print(f"Stage sum: {total_stages:.2f} ms")
+        print(f"Stage sum: {total_stages:.3f} seconds")
         print(f"Total stages: {len(stage_times)}")
         
         # For now, just verify that we have reasonable stage times

@@ -59,3 +59,8 @@ Thumbs.db
 htmlcov/
 .pytest_cache/
 .tox/
+
+# Analysis artifacts (generated, should not be committed)
+diff_analysis/
+determinism_analysis/
+analysis/
