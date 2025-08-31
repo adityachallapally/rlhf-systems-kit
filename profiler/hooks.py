@@ -61,13 +61,13 @@ class ProfilerContext:
     def __exit__(self, exc_type, exc_val, exc_tb):
         # Record end time
         end_time = time.time()
-        wall_time_ms = (end_time - self.start_time) * 1000
+        wall_time = end_time - self.start_time  # Keep in seconds
         
         # Record end CPU memory
         try:
             end_cpu_mem = self.process.memory_info().rss / 1024 / 1024  # MB
             cpu_mem_delta = end_cpu_mem - self.start_cpu_mem
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
+        except (psutil.NoProcess, psutil.AccessDenied):
             cpu_mem_delta = 0.0
         
         # Record end CUDA memory
@@ -87,7 +87,7 @@ class ProfilerContext:
         # Create result dictionary
         result = {
             'stage': self.stage_name,
-            'wall_time_ms': wall_time_ms,
+            'wall_time': wall_time,  # Changed from wall_time_ms to wall_time (seconds)
             'cpu_mem_mb': cpu_mem_delta,
             'cuda_mem_mb_current': cuda_mem_current,
             'cuda_mem_mb_peak': cuda_mem_peak,
