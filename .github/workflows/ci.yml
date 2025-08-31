@@ -19,7 +19,7 @@ jobs:
         python-version: '3.12'
     
     - name: Cache pip dependencies
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -68,14 +68,14 @@ jobs:
         python scripts/assert_determinism.py --run_a runs/run_a --run_b runs/run_b --tolerance 1e-6
     
     - name: Upload first run artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: run_a
         path: runs/run_a/
         retention-days: 7
     
     - name: Upload second run artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: run_b
         path: runs/run_b/
