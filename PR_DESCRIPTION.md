@@ -1,4 +1,4 @@
-# Restore Main Divergence Analysis Return Path
+# Restore Main Divergence Analysis Return Path + Latest CI Improvements
 
 ## 🚨 Critical Issue Fixed
 
@@ -33,6 +33,23 @@ The recent refactor had removed the bulk of the `first_divergence` function, cau
 ### Integration Updates
 - Updated `rlhf_core/__init__.py` to export all divergence functions
 - Functions are now available as `from rlhf_core.divergence import ...`
+
+## 🚀 Latest CI Improvements Included
+
+This PR also includes the latest CI workflow improvements:
+
+### Enhanced CI Workflow (`.github/workflows/ci.yml`)
+- **Updated GitHub Actions**: Latest versions of cache and artifact actions
+- **Enhanced CPU Training Support**: Improved determinism and CPU training compatibility
+- **Better Artifact Management**: Improved CI artifact handling and retention
+- **Profiling Improvements**: Refactored to use seconds, improved determinism
+- **Analysis Artifacts**: Enhanced profiling analysis and reporting
+
+### CI Enhancements
+- **Latest Action Versions**: Updated to `actions/checkout@v4`, `actions/setup-python@v4`
+- **Improved Caching**: Better pip dependency caching strategy
+- **Enhanced Testing**: Better determinism testing and CPU training support
+- **Artifact Management**: Improved run artifact handling and symlink creation
 
 ## ✨ Key Features
 
@@ -135,6 +152,12 @@ The test creates synthetic data where one run diverges after step 50, verifying 
 
 - **Modified files:**
   - `rlhf_core/__init__.py` - Added divergence function exports
+  - `.github/workflows/ci.yml` - Latest CI improvements and updates
+  - `train.py` - Enhanced CPU training support and determinism
+  - `profiler/hooks.py` - Improved profiling with seconds-based timing
+  - `profiler/report.py` - Enhanced profiling analysis
+  - `tools/check_profile.py` - Improved profile checking
+  - `test_cpu_training.py` - New CPU training test suite
 
 ## 🎉 Impact
 
@@ -145,6 +168,9 @@ This restoration ensures that:
 4. **Training stability monitoring** can function properly
 5. **CLI tools** work without crashes
 6. **Integration points** receive valid data structures
+7. **CI workflow** is updated with latest improvements
+8. **CPU training** has enhanced support and determinism
+9. **Profiling** is improved with better timing and analysis
 
 ## 🔗 Dependencies
 
@@ -167,6 +193,10 @@ These are already included in the project's `requirements.txt` and `pyproject.to
 - [x] Added detailed documentation
 - [x] Fixed all edge cases and error handling
 - [x] Ensured functions never return `None`
+- [x] Included latest CI workflow improvements
+- [x] Enhanced CPU training support
+- [x] Updated GitHub Actions to latest versions
+- [x] Improved profiling and determinism
 
 ## 🎯 Conclusion
 
@@ -176,12 +206,15 @@ The divergence analysis functionality has been completely restored with:
 - **Full documentation** for users and developers
 - **CLI tools** for easy command-line usage
 - **Proper integration** with the existing codebase
+- **Latest CI improvements** for better workflow reliability
+- **Enhanced CPU training support** for broader compatibility
 
-The critical issue where `first_divergence` would return `None` and cause `AttributeError` in callers has been resolved. The function now always returns a valid `DivergenceReport` object, ensuring that training stability monitoring and analysis can function properly.
+The critical issue where `first_divergence` would return `None` and cause `AttributeError` in callers has been resolved. The function now always returns a valid `DivergenceReport` object, ensuring that training stability monitoring and analysis can function properly. Additionally, the CI workflow has been updated with the latest improvements for better reliability and testing.
 
 ---
 
-**Type**: 🐛 Bug Fix  
+**Type**: 🐛 Bug Fix + 🚀 Enhancement  
 **Priority**: 🔴 High (P0)  
 **Breaking Changes**: ❌ None  
-**Dependencies**: ✅ Already included in requirements.txt
+**Dependencies**: ✅ Already included in requirements.txt  
+**CI Improvements**: ✅ Latest GitHub Actions and workflow enhancements
