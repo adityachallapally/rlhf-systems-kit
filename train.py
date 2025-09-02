@@ -22,6 +22,8 @@ from rlhf_core.reward import ToyRewardModel
 from rlhf_core.ppo import PPOTrainer
 from rlhf_core.profiler import ProfilerManager, stage_timer
 from rlhf_core.logging import JSONLLogger, write_sysinfo, create_run_dir, update_latest_symlink
+# Import plot generation - use simple version to avoid dependency issues
+import subprocess
 
 
 def set_all_seeds(seed: int):
@@ -283,10 +285,28 @@ def main():
     # Create a symlink to the latest run
     update_latest_symlink(run_dir, args.output_dir)
     
+    # Generate training plots/reports
+    print("\nGenerating training plots...")
+    try:
+        plot_script = os.path.join(os.path.dirname(__file__), 'tools', 'generate_plots_simple.py')
+        result = subprocess.run([sys.executable, plot_script, '--run', run_dir], 
+                              capture_output=True, text=True, timeout=30)
+        if result.returncode == 0:
+            print("Training plots/reports generated successfully!")
+            # Extract generated files from output
+            lines = result.stdout.split('\n')
+            for line in lines:
+                if line.strip().startswith('- '):
+                    print(f"  {line.strip()}")
+        else:
+            print(f"Warning: Plot generation failed: {result.stderr}")
+    except Exception as e:
+        print(f"Warning: Failed to generate plots: {e}")
+    
     print(f"\nTraining completed successfully!")
     print(f"Total time: {total_time:.2f} seconds")
     print(f"Output directory: {run_dir}")
-    print(f"Metrics: {run_dir}/metrics.jsonl")
+    print(f"Metrics: {run_dir}/logs/train.jsonl")
     print(f"TensorBoard: {tb_dir}")
     print(f"Checkpoints: {checkpoint_dir}")
     

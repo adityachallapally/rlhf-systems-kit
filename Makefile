@@ -16,6 +16,12 @@ help:
 	@echo "Profiling:"
 	@echo "  profile        - Run profiling job (<2 min)"
 	@echo ""
+	@echo "Visualization:"
+	@echo "  plots          - Generate PNG plots from latest training run"
+	@echo "  plots-run      - Generate plots from specific run (use RUN=path)"
+	@echo "  anomaly-check  - Generate anomaly detection report from latest run"
+	@echo "  anomaly-check-run - Generate anomaly report from specific run (use RUN=path)"
+	@echo ""
 	@echo "Verification:"
 	@echo "  verify_m1      - Verify M1: Determinism"
 	@echo "  verify_m2      - Verify M2: Profiler artifacts"
@@ -85,6 +91,38 @@ profile:
 	@echo "Running profiling job (target: <2 minutes)..."
 	timeout 130s python3 tools/run_profile.py --steps 1 --batch_size 2 --seq_len 10
 	@echo "Profiling completed!"
+
+# Generate plots from latest training run
+plots:
+	@echo "Generating plots from latest training run..."
+	python3 tools/generate_plots_simple.py --run runs/latest
+	@echo "Plot generation completed!"
+
+# Generate plots from specific run
+plots-run:
+	@echo "Usage: make plots-run RUN=runs/run_20250829_024038"
+	@if [ -z "$(RUN)" ]; then \
+		echo "Error: Please specify RUN variable, e.g., make plots-run RUN=runs/run_20250829_024038"; \
+		exit 1; \
+	fi
+	@echo "Generating plots from run: $(RUN)"
+	python3 tools/generate_plots_simple.py --run $(RUN)
+
+# Generate anomaly detection report from latest run
+anomaly-check:
+	@echo "Generating anomaly detection report from latest training run..."
+	python3 tools/generate_anomaly_plots.py --run runs/latest
+	@echo "Anomaly check completed!"
+
+# Generate anomaly detection report from specific run
+anomaly-check-run:
+	@echo "Usage: make anomaly-check-run RUN=runs/run_20250829_024038"
+	@if [ -z "$(RUN)" ]; then \
+		echo "Error: Please specify RUN variable, e.g., make anomaly-check-run RUN=runs/run_20250829_024038"; \
+		exit 1; \
+	fi
+	@echo "Generating anomaly report from run: $(RUN)"
+	python3 tools/generate_anomaly_plots.py --run $(RUN)
 
 # M1: Verify determinism
 verify_m1:
