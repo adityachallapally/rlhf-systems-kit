@@ -29,13 +29,17 @@ def set_all_seeds(seed: int):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    
+    # Only set CUDA seeds if CUDA is available
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        # disable TF32 so matmul kernels pick deterministic paths
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
+    
     torch.use_deterministic_algorithms(True, warn_only=True)
     torch.backends.cudnn.benchmark = False
     torch.backends.cudnn.deterministic = True
-    # disable TF32 so matmul kernels pick deterministic paths
-    torch.backends.cuda.matmul.allow_tf32 = False
-    torch.backends.cudnn.allow_tf32 = False
     os.environ['PYTHONHASHSEED'] = str(seed)
 
 

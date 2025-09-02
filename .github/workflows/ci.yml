@@ -32,50 +32,127 @@ jobs:
         pip install -r requirements.txt
         pip install streamlit plotly
     
+    - name: Create runs directory
+      run: |
+        mkdir -p runs
+        echo "Created runs directory"
+    
     - name: Run first smoke test
       run: |
-        python train.py --seed 123 --epochs 1 --steps_per_epoch 2 --batch_size 2 --max_new_tokens 5 --profiler on
-        echo "First run completed"
+        python train.py --seed 123 --epochs 1 --steps_per_epoch 2 --batch_size 2 --max_new_tokens 5 --profiler on --device cpu
+        if [ $? -eq 0 ]; then
+          echo "First run completed successfully"
+        else
+          echo "First run failed with exit code $?"
+          exit 1
+        fi
     
     - name: Create symlink for first run
       run: |
-        # Find the most recent run directory
-        LATEST_RUN=$(ls -td runs/run_* | head -1)
+        # List all run directories for debugging
+        echo "=== All run directories ==="
+        ls -la runs/ || echo "No runs directory found"
+        # Find the most recent run directory (should be the first run)
+        LATEST_RUN=$(ls -td runs/run_* 2>/dev/null | head -1)
+        if [ -z "$LATEST_RUN" ]; then
+          echo "Error: No run directories found"
+          exit 1
+        fi
         echo "First run directory: $LATEST_RUN"
-        # Create symlink for CI artifact naming
-        ln -sf "$LATEST_RUN" runs/run_a
+        # Create symlink for CI artifact naming (use absolute path)
+        ln -sf "$(realpath "$LATEST_RUN")" runs/run_a
+        echo "Created symlink: runs/run_a -> $(basename "$LATEST_RUN")"
+        # Verify symlink was created
+        ls -la runs/run_a
     
     - name: Run second smoke test
       run: |
-        python train.py --seed 123 --epochs 1 --steps_per_epoch 2 --batch_size 2 --max_new_tokens 5 --profiler on
-        echo "Second run completed"
+        python train.py --seed 123 --epochs 1 --steps_per_epoch 2 --batch_size 2 --max_new_tokens 5 --profiler on --device cpu
+        if [ $? -eq 0 ]; then
+          echo "Second run completed successfully"
+        else
+          echo "Second run failed with exit code $?"
+          exit 1
+        fi
     
     - name: Create symlink for second run
       run: |
-        # Find the most recent run directory
-        LATEST_RUN=$(ls -td runs/run_* | head -1)
+        # List all run directories for debugging
+        echo "=== All run directories ==="
+        ls -la runs/ || echo "No runs directory found"
+        # Find the most recent run directory (should be the second run)
+        LATEST_RUN=$(ls -td runs/run_* 2>/dev/null | head -1)
+        if [ -z "$LATEST_RUN" ]; then
+          echo "Error: No run directories found"
+          exit 1
+        fi
         echo "Second run directory: $LATEST_RUN"
-        # Create symlink for CI artifact naming
-        ln -sf "$LATEST_RUN" runs/run_b
+        # Create symlink for CI artifact naming (use absolute path)
+        ln -sf "$(realpath "$LATEST_RUN")" runs/run_b
+        echo "Created symlink: runs/run_b -> $(basename "$LATEST_RUN")"
+        # Verify symlink was created
+        ls -la runs/run_b
     
     - name: Update latest symlink
       run: |
         # Update the latest symlink to point to the second run
         ln -sf "$(ls -td runs/run_* | head -1)" runs/latest
     
+    - name: Verify symlinks before assert determinism
+      run: |
+        echo "=== Checking run directories before assert determinism ==="
+        ls -la runs/ || echo "No runs directory found"
+        echo "=== Checking run_a symlink ==="
+        if [ -L runs/run_a ]; then
+          echo "run_a is a symlink pointing to: $(readlink runs/run_a)"
+          ls -la runs/run_a
+        else
+          echo "run_a is not a symlink or does not exist"
+          exit 1
+        fi
+        echo "=== Checking run_b symlink ==="
+        if [ -L runs/run_b ]; then
+          echo "run_b is a symlink pointing to: $(readlink runs/run_b)"
+          ls -la runs/run_b
+        else
+          echo "run_b is not a symlink or does not exist"
+          exit 1
+        fi
+        echo "=== Verifying symlink targets exist ==="
+        if [ -d runs/run_a ]; then
+          echo "run_a target directory exists"
+          echo "Contents of run_a:"
+          ls -la runs/run_a/
+        else
+          echo "run_a target directory does not exist"
+          exit 1
+        fi
+        if [ -d runs/run_b ]; then
+          echo "run_b target directory exists"
+          echo "Contents of run_b:"
+          ls -la runs/run_b/
+        else
+          echo "run_b target directory does not exist"
+          exit 1
+        fi
+        echo "=== Testing symlink resolution ==="
+        echo "run_a resolves to: $(realpath runs/run_a)"
+        echo "run_b resolves to: $(realpath runs/run_b)"
+    
     - name: Assert determinism
       run: |
+        echo "=== Running assert determinism ==="
         python scripts/assert_determinism.py --run_a runs/run_a --run_b runs/run_b --tolerance 1e-6
     
     - name: Upload first run artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: run_a
         path: runs/run_a/
         retention-days: 7
     
     - name: Upload second run artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: run_b
         path: runs/run_b/
