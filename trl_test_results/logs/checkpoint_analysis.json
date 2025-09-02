@@ -1,0 +1,45 @@
+[
+  {
+    "step": 50,
+    "timestamp": "2025-09-02T02:38:26.249264",
+    "health_score": 0.9358868757354804,
+    "file_size_mb": 79.09892164931503,
+    "weight_stats": {
+      "mean": 0.20939408189717001,
+      "std": 0.9934108922898907,
+      "norm": 27.107033717834142
+    },
+    "issues": [],
+    "recommendations": []
+  },
+  {
+    "step": 100,
+    "timestamp": "2025-09-02T02:38:26.249271",
+    "health_score": 0.9062855563580149,
+    "file_size_mb": 85.10468168107988,
+    "weight_stats": {
+      "mean": 0.47088210678019116,
+      "std": 0.5719493220501606,
+      "norm": 19.489430773866165
+    },
+    "issues": [],
+    "recommendations": []
+  },
+  {
+    "step": 150,
+    "timestamp": "2025-09-02T02:38:26.249274",
+    "health_score": 0.7593414379150196,
+    "file_size_mb": 191.09300041504932,
+    "weight_stats": {
+      "mean": -0.36995380653148224,
+      "std": 0.9708494372701786,
+      "norm": 19.772245313015308
+    },
+    "issues": [
+      "Low health score detected"
+    ],
+    "recommendations": [
+      "Consider adjusting learning rate"
+    ]
+  }
+]

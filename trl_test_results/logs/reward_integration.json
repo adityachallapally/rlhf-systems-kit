@@ -1,0 +1,56 @@
+[
+  {
+    "step": 0,
+    "timestamp": "2025-09-02T02:38:26.249509",
+    "scenario": "Normal Rewards",
+    "reward_stats": {
+      "mean": 2.1,
+      "std": 0.1414213562373095,
+      "min": 1.9,
+      "max": 2.3
+    },
+    "reliability_metrics": {
+      "stability": 0.9369055018536232,
+      "consistency": 0.8,
+      "variance": 0.02
+    },
+    "anomalies": [],
+    "recommendations": []
+  },
+  {
+    "step": 10,
+    "timestamp": "2025-09-02T02:38:26.249519",
+    "scenario": "High Variance",
+    "reward_stats": {
+      "mean": 2.1,
+      "std": 1.392838827718412,
+      "min": 0.5,
+      "max": 4.0
+    },
+    "reliability_metrics": {
+      "stability": 0.6012301476159031,
+      "consistency": 0.6,
+      "variance": 1.9400000000000004
+    },
+    "anomalies": [],
+    "recommendations": []
+  },
+  {
+    "step": 20,
+    "timestamp": "2025-09-02T02:38:26.249525",
+    "scenario": "Anomalous Rewards",
+    "reward_stats": {
+      "mean": 3.6,
+      "std": 3.2006249389767625,
+      "min": 1.9,
+      "max": 10.0
+    },
+    "reliability_metrics": {
+      "stability": 0.5293631154503917,
+      "consistency": 0.6,
+      "variance": 10.244000000000005
+    },
+    "anomalies": [],
+    "recommendations": []
+  }
+]
