@@ -1,0 +1,49 @@
+[
+  {
+    "step": 50,
+    "timestamp": "2025-09-02T02:39:43.735980",
+    "health_score": 0.9462436756455637,
+    "file_size_mb": 172.47724207146788,
+    "weight_stats": {
+      "mean": 0.43752851156046757,
+      "std": 0.9826215824391707,
+      "norm": 38.09760579786001
+    },
+    "issues": [],
+    "recommendations": []
+  },
+  {
+    "step": 100,
+    "timestamp": "2025-09-02T02:39:43.735992",
+    "health_score": 0.7405446618764804,
+    "file_size_mb": 59.70019066959449,
+    "weight_stats": {
+      "mean": -0.42957909151636775,
+      "std": 0.9368453674266705,
+      "norm": 39.962063032527354
+    },
+    "issues": [
+      "Low health score detected"
+    ],
+    "recommendations": [
+      "Consider adjusting learning rate"
+    ]
+  },
+  {
+    "step": 150,
+    "timestamp": "2025-09-02T02:39:43.735999",
+    "health_score": 0.7404173516429735,
+    "file_size_mb": 155.00503165782305,
+    "weight_stats": {
+      "mean": 0.3491651777631789,
+      "std": 0.43011016495373366,
+      "norm": 21.175233563919605
+    },
+    "issues": [
+      "Low health score detected"
+    ],
+    "recommendations": [
+      "Consider adjusting learning rate"
+    ]
+  }
+]
