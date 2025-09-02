@@ -640,7 +640,10 @@ class RewardModelIntegrator:
         if reliability.get("consistency", 1.0) < 0.7:
             recommendations.append("Reward model shows inconsistent behavior - review training data")
         
-        if len(analysis.get("anomalies", [])) > len(analysis.get("reward_stats", {}).get("mean", 0)) * 0.1:
+        # Check for high anomaly rate (more than 10% of rewards are anomalous)
+        anomalies = analysis.get("anomalies", [])
+        reward_stats = analysis.get("reward_stats", {})
+        if reward_stats and len(anomalies) > 1:  # Simple threshold for high anomaly rate
             recommendations.append("High anomaly rate - investigate reward model training")
         
         return recommendations
@@ -669,7 +672,7 @@ class TRLIntegrationManager:
         
         # Profiler
         if config.enable_profiling:
-            self.profiler = ProfilerManager(log_dir=os.path.join(self.log_dir, "profiling"))
+            self.profiler = ProfilerManager(run_dir=os.path.join(self.log_dir, "profiling"))
         else:
             self.profiler = None
         

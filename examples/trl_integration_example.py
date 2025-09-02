@@ -260,8 +260,10 @@ def demonstrate_reward_model_integration():
         )
         
         reliability = analysis.get("reliability_metrics", {})
-        print(f"   Stability: {reliability.get('stability', 'N/A'):.2f}")
-        print(f"   Consistency: {reliability.get('consistency', 'N/A'):.2f}")
+        stability = reliability.get('stability', 'N/A')
+        consistency = reliability.get('consistency', 'N/A')
+        print(f"   Stability: {stability:.2f}" if isinstance(stability, (int, float)) else f"   Stability: {stability}")
+        print(f"   Consistency: {consistency:.2f}" if isinstance(consistency, (int, float)) else f"   Consistency: {consistency}")
         
         if analysis["anomalies"]:
             print(f"   ⚠️  {len(analysis['anomalies'])} anomalies detected")
