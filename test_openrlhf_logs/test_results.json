@@ -1,0 +1,48 @@
+{
+  "start_time": "2025-09-02T06:48:47.063144",
+  "tests_passed": 8,
+  "tests_failed": 0,
+  "test_details": [
+    {
+      "test": "Configuration Test",
+      "status": "PASSED",
+      "result": "OpenRLHFIntegrationConfig(model_name='gpt2', learning_rate=1e-05, batch_size=4, mini_batch_size=1, gradient_accumulation_steps=1, ppo_epochs=4, max_grad_norm=1.0, cliprange=0.2, cliprange_value=0.2, vf_coef=0.1, gamma=1.0, lam=0.95, kl_penalty='kl', target=6.0, horizon=10000.0, init_kl_coef=0.2, adap_kl_ctrl=True, advantage_estimator='reinforce_baseline', normalize_reward=True, packing_samples=True, vllm_num_engines=8, vllm_tensor_parallel_size=1, vllm_gpu_memory_utilization=0.6, colocate_all_models=True, log_with='tensorboard', logging_dir='./test_openrlhf_logs', save_freq=100, eval_freq=50, project_name='rlhf-openrlhf-integration', enable_profiling=True, enable_checkpoint_analysis=True, enable_reward_monitoring=True, anomaly_detection_threshold=3.0, device='auto', fp16=False, bf16=False, gradient_checkpointing=False, zero_stage=3)"
+    },
+    {
+      "test": "Integration Manager Test",
+      "status": "PASSED",
+      "result": "<rlhf_core.openrlhf_integration.OpenRLHFIntegrationManager object at 0x7f1fa42c2a50>"
+    },
+    {
+      "test": "Trainer Setup Test",
+      "status": "PASSED",
+      "result": "(<rlhf_core.openrlhf_integration.OpenRLHFIntegrationManager object at 0x7f1f98feb250>, <rlhf_core.openrlhf_integration.MockOpenRLHFTrainer object at 0x7f1fa42c3620>)"
+    },
+    {
+      "test": "Training Step Test",
+      "status": "PASSED",
+      "result": "{'kl_div': 0.06694509742005691, 'policy_loss': 0.6026673648735758, 'value_loss': 0.38366238341401615, 'reward': 0.18122878710994555, 'clip_ratio': 0.20329211675512793, 'entropy': 2.389609344187836, 'advantage': 0.08814784490329917, 'vllm_latency': 12.70557734276839, 'vllm_throughput': 240.20066641609742, 'ray_actor_utilization': 0.9182634994918003}"
+    },
+    {
+      "test": "Checkpoint Saving Test",
+      "status": "PASSED",
+      "result": "{'step': 1, 'timestamp': '2025-09-02T06:48:47.732567', 'framework': 'openrlhf', 'model_path': './test_openrlhf_logs/test_checkpoint.pt', 'file_size_mb': 0.0036401748657226562, 'health_score': 1.0, 'issues': [], 'recommendations': [], 'weight_stats': {'weight1': {'mean': 0.039561785757541656, 'std': 0.8700923919677734, 'min': -1.9244216680526733, 'max': 2.821239709854126, 'norm': 8.66634464263916}, 'weight2': {'mean': -0.05521021783351898, 'std': 1.0235813856124878, 'min': -2.4670233726501465, 'max': 3.1478705406188965, 'norm': 10.19946002960205}, 'bias1': {'mean': -0.0336483009159565, 'std': 0.9537486433982849, 'min': -2.356360673904419, 'max': 2.745457172393799, 'norm': 9.49564266204834}}, 'gradient_stats': {}, 'training_metrics': {'global_step': 0, 'learning_rate': 1e-05, 'epoch': 0}, 'optimizer_state': {}, 'openrlhf_components': {'advantage_estimator': 'reinforce_baseline', 'normalize_reward': True, 'packing_samples': True}, 'vllm_state': {'num_engines': 8, 'tensor_parallel_size': 1, 'gpu_memory_utilization': 0.6}, 'ray_state': {'num_actors': 4, 'num_workers': 8, 'cluster_resources': {'CPU': 16, 'GPU': 2}}}"
+    },
+    {
+      "test": "Reward Monitoring Test",
+      "status": "PASSED",
+      "result": "{'step': 1, 'timestamp': '2025-09-02T06:48:47.737608', 'framework': 'openrlhf', 'reward_stats': {'mean': 0.2, 'std': 0.07071067811865475, 'min': 0.1, 'max': 0.3, 'median': 0.2, 'q25': 0.15, 'q75': 0.25}, 'advantage_stats': {'mean': 0.09000000000000001, 'std': 0.023664319132398463, 'min': 0.05, 'max': 0.12, 'median': 0.1}, 'reliability_metrics': {'insufficient_data': True}, 'anomalies': [], 'recommendations': ['Low advantage-reward correlation - consider advantage estimator tuning']}"
+    },
+    {
+      "test": "Full Training Test",
+      "status": "PASSED",
+      "result": "{'total_steps': 20, 'start_time': '2025-09-02T06:48:47.963094', 'framework': 'openrlhf', 'checkpoints_saved': [{'step': 0, 'path': './test_openrlhf_logs/openrlhf_checkpoint_step_0', 'health_score': 1.0}, {'step': 10, 'path': './test_openrlhf_logs/openrlhf_checkpoint_step_10', 'health_score': 1.0}], 'anomalies_detected': [], 'final_metrics': {'kl_div': {'mean': np.float64(0.10713574432418956), 'std': np.float64(0.059383862074275484), 'min': np.float64(0.03023325568769389), 'max': np.float64(0.21254520079116748), 'trend': 'stable'}, 'policy_loss': {'mean': np.float64(0.5219874910063859), 'std': np.float64(0.07494538688302078), 'min': np.float64(0.419988559364725), 'max': np.float64(0.7387480278280987), 'trend': 'stable'}, 'value_loss': {'mean': np.float64(0.32100586171169443), 'std': np.float64(0.040295946034510824), 'min': np.float64(0.21971613107043542), 'max': np.float64(0.3791321740621784), 'trend': 'stable'}, 'reward': {'mean': np.float64(0.2030215738448174), 'std': np.float64(0.07983146905926822), 'min': np.float64(0.06569152363396669), 'max': np.float64(0.35438298531586426), 'trend': 'stable'}, 'clip_ratio': {'mean': np.float64(0.17329640330513216), 'std': np.float64(0.04673147470693566), 'min': np.float64(0.10167834818910569), 'max': np.float64(0.2747916175147349), 'trend': 'stable'}, 'advantage': {'mean': np.float64(0.0962503780646805), 'std': np.float64(0.0478614234217735), 'min': np.float64(0.016018470294237405), 'max': np.float64(0.18269958962007626), 'trend': 'stable'}}, 'end_time': '2025-09-02T06:48:48.007707'}"
+    },
+    {
+      "test": "OpenRLHF vs TRL Comparison Test",
+      "status": "PASSED",
+      "result": "No return value"
+    }
+  ],
+  "end_time": "2025-09-02T06:48:48.012871"
+}

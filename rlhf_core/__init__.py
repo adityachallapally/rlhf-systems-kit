@@ -25,6 +25,21 @@ try:
 except ImportError:
     TRL_INTEGRATION_AVAILABLE = False
 
+# OpenRLHF Integration imports
+try:
+    from .openrlhf_integration import (
+        OpenRLHFIntegrationConfig,
+        OpenRLHFIntegrationManager,
+        OpenRLHFPPOMonitoringCallback,
+        OpenRLHFCheckpointAnalyzer,
+        OpenRLHFRewardModelIntegrator,
+        OpenRLHFTrainingCallback,
+        MockOpenRLHFTrainer
+    )
+    OPENRLHF_INTEGRATION_AVAILABLE = True
+except ImportError:
+    OPENRLHF_INTEGRATION_AVAILABLE = False
+
 __version__ = "0.1.0"
 __all__ = [
     'PolicyModel',
@@ -47,4 +62,16 @@ if TRL_INTEGRATION_AVAILABLE:
         'CheckpointAnalyzer',
         'RewardModelIntegrator',
         'TrainingCallback'
+    ])
+
+# Add OpenRLHF integration to __all__ if available
+if OPENRLHF_INTEGRATION_AVAILABLE:
+    __all__.extend([
+        'OpenRLHFIntegrationConfig',
+        'OpenRLHFIntegrationManager',
+        'OpenRLHFPPOMonitoringCallback',
+        'OpenRLHFCheckpointAnalyzer',
+        'OpenRLHFRewardModelIntegrator',
+        'OpenRLHFTrainingCallback',
+        'MockOpenRLHFTrainer'
     ])
