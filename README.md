@@ -20,7 +20,12 @@ RLHF training is notoriously difficult to debug and optimize. This toolkit addre
 - **Advanced Profiler**: Comprehensive timing analysis, memory profiling, and flame graph generation
 - **Training Stability Dashboard**: Real-time monitoring with automated warning systems
 - **Memory Optimizer**: Per-model memory analysis and intelligent configuration suggestions
-- **Framework Adapters**: Seamless integration with TRL and OpenRLHF
+- **🔥 TRL Integration**: Seamless integration with TRL (Transformers Reinforcement Learning) with:
+  - **Training Callbacks**: Real-time monitoring during training (80% user value)
+  - **PPO-Specific Monitoring**: Specialized PPO debugging and optimization (70% user value)
+  - **Checkpoint Analysis**: Model health monitoring (60% user value)
+  - **Reward Model Integration**: Reward model reliability (50% user value)
+- **Framework Adapters**: Drop-in adapters for popular RLHF frameworks (TRL, OpenRLHF)
 - **Automated CI/CD**: Reproducible builds, testing, and documentation generation
 
 ---
@@ -132,6 +137,50 @@ python train.py \
     --seed 42
 ```
 
+### 🔥 TRL Integration
+
+```bash
+# Install TRL integration
+python scripts/install_trl_integration.py
+
+# Run TRL integration example
+python examples/trl_integration_example.py --model gpt2 --steps 50
+
+# Test TRL integration
+python tests/test_trl_integration.py
+```
+
+**Quick TRL Integration Example:**
+
+```python
+from rlhf_core.trl_integration import TRLIntegrationManager, TRLIntegrationConfig
+
+# Configure integration
+config = TRLIntegrationConfig(
+    model_name="gpt2",
+    learning_rate=1e-5,
+    batch_size=4,
+    enable_profiling=True,
+    enable_checkpoint_analysis=True,
+    enable_reward_monitoring=True
+)
+
+# Initialize manager
+integration_manager = TRLIntegrationManager(config)
+
+# Setup TRL trainer
+trainer = integration_manager.setup_trl_trainer(
+    model_name="gpt2",
+    dataset_name="imdb"
+)
+
+# Train with comprehensive monitoring
+results = integration_manager.train_with_monitoring(
+    num_steps=100,
+    save_checkpoints=True
+)
+```
+
 ---
 
 ## 📁 Project Structure
@@ -142,7 +191,18 @@ rlhf-systems-kit/
 │   ├── __init__.py
 │   ├── policy.py        # GPT-2 policy wrapper
 │   ├── reward.py        # Toy reward models
-│   └── ppo.py          # PPO training loop
+│   ├── ppo.py          # PPO training loop
+│   ├── profiler.py     # Profiling utilities
+│   ├── logging.py      # Logging utilities
+│   └── trl_integration.py # 🔥 TRL integration module
+├── examples/            # Usage examples
+│   └── trl_integration_example.py # TRL integration demo
+├── tests/               # Test suite
+│   └── test_trl_integration.py # TRL integration tests
+├── scripts/             # Utility scripts
+│   └── install_trl_integration.py # TRL installation script
+├── docs/                # Documentation
+│   └── TRL_INTEGRATION.md # TRL integration guide
 ├── runs/                # Training outputs
 │   ├── logs/           # JSONL logs
 │   ├── tb/             # TensorBoard files
