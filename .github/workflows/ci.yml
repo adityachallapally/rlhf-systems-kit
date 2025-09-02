@@ -52,15 +52,18 @@ jobs:
         # List all run directories for debugging
         echo "=== All run directories ==="
         ls -la runs/ || echo "No runs directory found"
-        # Find the most recent run directory
+        # Find the most recent run directory (should be the first run)
         LATEST_RUN=$(ls -td runs/run_* 2>/dev/null | head -1)
         if [ -z "$LATEST_RUN" ]; then
           echo "Error: No run directories found"
           exit 1
         fi
         echo "First run directory: $LATEST_RUN"
-        # Create symlink for CI artifact naming
-        ln -sf "$LATEST_RUN" runs/run_a
+        # Create symlink for CI artifact naming (use absolute path)
+        ln -sf "$(realpath "$LATEST_RUN")" runs/run_a
+        echo "Created symlink: runs/run_a -> $(basename "$LATEST_RUN")"
+        # Verify symlink was created
+        ls -la runs/run_a
     
     - name: Run second smoke test
       run: |
@@ -77,29 +80,67 @@ jobs:
         # List all run directories for debugging
         echo "=== All run directories ==="
         ls -la runs/ || echo "No runs directory found"
-        # Find the most recent run directory
+        # Find the most recent run directory (should be the second run)
         LATEST_RUN=$(ls -td runs/run_* 2>/dev/null | head -1)
         if [ -z "$LATEST_RUN" ]; then
           echo "Error: No run directories found"
           exit 1
         fi
         echo "Second run directory: $LATEST_RUN"
-        # Create symlink for CI artifact naming
-        ln -sf "$LATEST_RUN" runs/run_b
+        # Create symlink for CI artifact naming (use absolute path)
+        ln -sf "$(realpath "$LATEST_RUN")" runs/run_b
+        echo "Created symlink: runs/run_b -> $(basename "$LATEST_RUN")"
+        # Verify symlink was created
+        ls -la runs/run_b
     
     - name: Update latest symlink
       run: |
         # Update the latest symlink to point to the second run
         ln -sf "$(ls -td runs/run_* | head -1)" runs/latest
     
-    - name: Assert determinism
+    - name: Verify symlinks before assert determinism
       run: |
         echo "=== Checking run directories before assert determinism ==="
         ls -la runs/ || echo "No runs directory found"
         echo "=== Checking run_a symlink ==="
-        ls -la runs/run_a || echo "run_a symlink not found"
+        if [ -L runs/run_a ]; then
+          echo "run_a is a symlink pointing to: $(readlink runs/run_a)"
+          ls -la runs/run_a
+        else
+          echo "run_a is not a symlink or does not exist"
+          exit 1
+        fi
         echo "=== Checking run_b symlink ==="
-        ls -la runs/run_b || echo "run_b symlink not found"
+        if [ -L runs/run_b ]; then
+          echo "run_b is a symlink pointing to: $(readlink runs/run_b)"
+          ls -la runs/run_b
+        else
+          echo "run_b is not a symlink or does not exist"
+          exit 1
+        fi
+        echo "=== Verifying symlink targets exist ==="
+        if [ -d runs/run_a ]; then
+          echo "run_a target directory exists"
+          echo "Contents of run_a:"
+          ls -la runs/run_a/
+        else
+          echo "run_a target directory does not exist"
+          exit 1
+        fi
+        if [ -d runs/run_b ]; then
+          echo "run_b target directory exists"
+          echo "Contents of run_b:"
+          ls -la runs/run_b/
+        else
+          echo "run_b target directory does not exist"
+          exit 1
+        fi
+        echo "=== Testing symlink resolution ==="
+        echo "run_a resolves to: $(realpath runs/run_a)"
+        echo "run_b resolves to: $(realpath runs/run_b)"
+    
+    - name: Assert determinism
+      run: |
         echo "=== Running assert determinism ==="
         python scripts/assert_determinism.py --run_a runs/run_a --run_b runs/run_b --tolerance 1e-6
     

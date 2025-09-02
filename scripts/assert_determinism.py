@@ -153,22 +153,28 @@ def main():
     
     args = parser.parse_args()
     
-    # Validate run directories
-    if not Path(args.run_a).exists():
-        print(f"Error: Run directory A does not exist: {args.run_a}")
+    # Validate run directories (resolve symlinks)
+    run_a_path = Path(args.run_a).resolve()
+    run_b_path = Path(args.run_b).resolve()
+    
+    print(f"Run A path: {args.run_a} -> {run_a_path}")
+    print(f"Run B path: {args.run_b} -> {run_b_path}")
+    
+    if not run_a_path.exists():
+        print(f"Error: Run directory A does not exist: {args.run_a} (resolved to {run_a_path})")
         sys.exit(1)
     
-    if not Path(args.run_b).exists():
-        print(f"Error: Run directory B does not exist: {args.run_b}")
+    if not run_b_path.exists():
+        print(f"Error: Run directory B does not exist: {args.run_b} (resolved to {run_b_path})")
         sys.exit(1)
     
     try:
         # Load metrics from both runs
-        print(f"Loading metrics from run A: {args.run_a}")
-        df_a = load_metrics(args.run_a)
+        print(f"Loading metrics from run A: {run_a_path}")
+        df_a = load_metrics(str(run_a_path))
         
-        print(f"Loading metrics from run B: {args.run_b}")
-        df_b = load_metrics(args.run_b)
+        print(f"Loading metrics from run B: {run_b_path}")
+        df_b = load_metrics(str(run_b_path))
         
         # Align metrics by step
         print("Aligning metrics by step...")
