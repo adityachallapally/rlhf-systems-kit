@@ -1,5 +1,7 @@
 # RLHF Systems Kit
 
+<!-- Verification: Repository access confirmed by Devin -->
+
 [![CI](https://github.com/adityachallapally/rlhf-systems-kit/workflows/CI/badge.svg)](https://github.com/adityachallapally/rlhf-systems-kit/actions)
 
 A comprehensive, open-source toolkit for **understanding, profiling, and debugging RLHF (Reinforcement Learning from Human Feedback) pipelines** at small scale (GPT-2 / ResNet-18 level). This project aims to **expose internals**, **optimize efficiency**, and **provide production-ready dashboards** that ML engineers and researchers can use immediately.
