@@ -1,0 +1,1 @@
+{"model": "gpt2", "learning_rate": 1e-05, "batch_size": 4, "total_steps": 10}

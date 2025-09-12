@@ -1,0 +1,5 @@
+{"events": 1, "time": 0.1, "output": "Hello world"}
+{"events": 2, "time": 0.2, "output": "How are you"}
+{"events": 3, "time": 0.3, "output": "Good morning"}
+{"events": 4, "time": 0.4, "output": "Nice day"}
+{"events": 5, "time": 0.5, "output": "See you later"}
