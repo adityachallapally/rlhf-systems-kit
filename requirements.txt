@@ -17,3 +17,8 @@ pytest>=7.0.0
 trl>=0.7.0
 peft>=0.5.0
 bitsandbytes>=0.41.0
+# OpenRLHF dependencies (commented out due to installation complexity)
+# openrlhf>=0.8.0
+# deepspeed>=0.17.5
+# flash-attn>=2.8.3
+# einops>=0.8.0
