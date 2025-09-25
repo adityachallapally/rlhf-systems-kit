@@ -116,6 +116,9 @@ class PPOTrainer:
         # Get profiler registry
         registry = get_profiler_registry()
         
+        # Increment step counter at the beginning to ensure all stages have the correct step number
+        self.step += 1
+        
         # Set models to appropriate modes
         self.policy_model.set_train_mode(True)
         self.reference_model.set_train_mode(False)
@@ -213,9 +216,6 @@ class PPOTrainer:
         
         # Stage 6: Evaluation step
         with prof_stage("eval_step", step_index=5, global_step=self.step) as eval_context:
-            # Update step counter
-            self.step += 1
-            
             # Add additional metrics
             metrics.update({
                 'step': self.step,

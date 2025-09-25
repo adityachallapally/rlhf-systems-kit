@@ -55,6 +55,9 @@ class ProfilerReport:
             # Get metadata from first result (should be consistent within stage)
             first_result = stage_data[0]
             
+            # Get the maximum global_step for this stage to show the latest step
+            max_global_step = max(r.get('global_step', 0) for r in stage_data)
+            
             summary_row = {
                 'stage': stage,
                 'wall_time_ms': np.mean(wall_times),
@@ -63,7 +66,7 @@ class ProfilerReport:
                 'tokens': first_result.get('tokens_processed'),
                 'batch_size': first_result.get('batch_size'),
                 'seq_len': first_result.get('seq_len'),
-                'step': first_result.get('global_step', 0),
+                'step': max_global_step,
                 'count': len(stage_data)
             }
             summary_data.append(summary_row)
@@ -233,13 +236,15 @@ class ProfilerReport:
     
     def generate_full_report(self, results: List[Dict[str, Any]], 
                            summary_filename: str = "summary.csv",
-                           figure_filename: str = "stage_breakdown.png"):
+                           figure_filename: str = "stage_breakdown.png",
+                           json_filename: str = "profiler_summary.json"):
         """Generate a complete profiling report.
         
         Args:
             results: List of profiling results from hooks
             summary_filename: Output CSV filename
             figure_filename: Output figure filename
+            json_filename: Output JSON summary filename
         
         Returns:
             Dict containing paths to generated files
@@ -251,6 +256,11 @@ class ProfilerReport:
         if summary_path:
             report_files['summary_csv'] = summary_path
         
+        # Generate profiler summary JSON
+        json_path = self.generate_profiler_summary_json(results, json_filename)
+        if json_path:
+            report_files['profiler_summary_json'] = json_path
+        
         # Generate figure
         figure_path = self.generate_stage_breakdown_figure(results, figure_filename)
         if figure_path:
@@ -260,6 +270,83 @@ class ProfilerReport:
         self.print_console_summary(results)
         
         return report_files
+    
+    def generate_profiler_summary_json(self, results: List[Dict[str, Any]], 
+                                     filename: str = "profiler_summary.json"):
+        """Generate profiler summary JSON with total_steps derived from recorded data.
+        
+        Args:
+            results: List of profiling results from hooks
+            filename: Output JSON filename
+        
+        Returns:
+            Path to generated JSON file
+        """
+        if not results:
+            print("Warning: No profiling results to generate summary JSON")
+            return None
+        
+        # Calculate total_steps from the recorded data
+        # Get unique global_step values from results
+        global_steps = set()
+        for result in results:
+            global_step = result.get('global_step', 0)
+            if global_step is not None:
+                global_steps.add(global_step)
+        
+        # total_steps should be the maximum global_step value
+        total_steps = max(global_steps) if global_steps else 0
+        
+        # Count total number of profiler records
+        total_records = len(results)
+        
+        # Group results by stage
+        stage_results = {}
+        for result in results:
+            stage = result.get('stage', 'unknown')
+            if stage not in stage_results:
+                stage_results[stage] = []
+            stage_results[stage].append(result)
+        
+        # Calculate stage statistics
+        stage_stats = {}
+        for stage, stage_data in stage_results.items():
+            wall_times = [r.get('wall_time_ms', 0) for r in stage_data]
+            cpu_mems = [r.get('cpu_mem_mb', 0) for r in stage_data]
+            cuda_peaks = [r.get('cuda_mem_mb_peak', 0) for r in stage_data]
+            
+            stage_stats[stage] = {
+                'count': len(stage_data),
+                'avg_wall_time_ms': np.mean(wall_times) if wall_times else 0,
+                'total_wall_time_ms': np.sum(wall_times) if wall_times else 0,
+                'avg_cpu_mem_mb': np.mean(cpu_mems) if cpu_mems else 0,
+                'avg_cuda_mem_mb_peak': np.mean(cuda_peaks) if cuda_peaks else 0
+            }
+        
+        # Create summary data
+        summary_data = {
+            'total_steps': total_steps,
+            'step_count': total_steps,  # Alias for compatibility
+            'total_records': total_records,
+            'stages': stage_stats,
+            'generated_at': datetime.now().isoformat(),
+            'metadata': {
+                'description': 'RLHF training profiler summary',
+                'total_steps_derived_from': 'recorded profiler data global_step values'
+            }
+        }
+        
+        # Write to JSON
+        json_path = os.path.join(self.summary_dir, filename)
+        with open(json_path, 'w') as f:
+            json.dump(summary_data, f, indent=2)
+        
+        print(f"Generated profiler summary JSON: {json_path}")
+        print(f"  Total steps: {total_steps}")
+        print(f"  Total records: {total_records}")
+        print(f"  Stages: {list(stage_stats.keys())}")
+        
+        return json_path
 
 
 def create_profiler_report(output_dir: str = "profiles") -> ProfilerReport:
